@@ -1,0 +1,2 @@
+Well, MutixOS is a Multi-core Operating System. I hope it will be stable as wellas efficiently running. 
+It has multiple independent cores, and the crashing of one of the cores would not affect others' work, that's why it's stable. And compared with the Mini-core OS its main part worked in core mode, thus, its more efficient than the Mini-core OS.
