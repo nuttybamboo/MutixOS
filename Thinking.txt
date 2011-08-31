@@ -1,0 +1,7 @@
+main parts:
+1) memory manage
+2) task task scheduling
+3) file system
+4) rescue moudle
+5) sand box
+
