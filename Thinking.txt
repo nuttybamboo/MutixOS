@@ -3,5 +3,11 @@ main parts:
 2) task task scheduling
 3) file system
 4) rescue moudle
-5) sand box
+// 5) sand box
 
+3 levels:
+r0: 4)
+r1: 1) 2) 3)
+r3: applacations...
+
+every parts has it own stack and memory space...
