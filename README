@@ -1,2 +1,3 @@
-Well, MutixOS is a Multi-core Operating System. I hope it will be stable as wellas efficiently running. 
-It has multiple independent cores, and the crashing of one of the cores would not affect others' work, that's why it's stable. And compared with the Mini-core OS its main part worked in core mode, thus, its more efficient than the Mini-core OS.
+Well, MutixOS is a Multi-kernel Operating System. I hope it will be stable as well as efficiently running. 
+It has multiple independent kernels, and the crashing of one of the kernels would not affect others' work, that's why it's stable. And compared with the Mini-kernel OS its main part worked in kernels mode, thus, its more efficient than the Mini-kernel OS.
+The MutixOS will service the Operating System teaching. One of the kernels, called Guard-kernel, would run at a higher privilege, thus, it can work as a virtual machine. As well as both the Cuard-kernel and the other parts component of the whole system, the Guard-kernel can learn more details about what happened to other kernels.So it would be easy for students to change or add modules to MutixOS, as well as to debug the changing of its modules.
