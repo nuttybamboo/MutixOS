@@ -6,4 +6,8 @@ Write project description.
 Analysis of project feasibility, project-specific needs further.
 Update project description.
 Retrieve and collect information.
-
+2011.09.01
+Thinking the overall structure of MutixOS....
+2011.09.02
+Found some papers about instructional OS such as OS/161, Nachos, Pintos, GeekOS..
+Reading the papers...

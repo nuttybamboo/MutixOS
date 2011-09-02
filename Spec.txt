@@ -2,3 +2,5 @@
 2)The system should have all the features which a complete OS should have.
 3)The architecture of the system should be clear and easy to understand.
 4)The code should have a good coding style as well as be easy to read.
+
+simplicity,availability of high quality free development tools, complete, usable, work on real hardware, simple yet operational...
