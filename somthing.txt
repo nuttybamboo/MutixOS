@@ -1,1 +1,14 @@
 instructional OS: OS/161, Nachos, GeekOS, ics-os, Pintos, PIOS(distributed OS).
+
+An instructional OS should be realistic enough to show how real operating systems work, yes simple enouth that the students can understand and modify it in significant ways.      -form The Nachos Instructional Operating System
+
+Earlier OS were too complicated for an undergraduate to understand and modify in a semester.
+UNIX showed that operating systems need only a few simple but powerful interfaces, and that the core of an operating system can be written in only a few dozen pages.                      -form The Nachos Instructional Operating System
+
+Rather than having to run the operating system on the bare hardware, computing cycles became cheap enough to make it feasible to execute an operating system kernel using a simulation of real hardware.
+
+to build the simplest implementation we could think of for each sub-system of Nachos
+Nachos maintains a simulated time that is incremented whenever a user program executes an instruction and whenever a call is made to certain low-level operating system routines. Interrupt handlers are then invoked when the simulated time reaches the appropriate point.
+
+To simplify matters, we omitted certain aspects of the C++ language: derived classes, operator and function overloading, and C++ streams. 
+
