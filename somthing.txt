@@ -7,8 +7,28 @@ UNIX showed that operating systems need only a few simple but powerful interface
 
 Rather than having to run the operating system on the bare hardware, computing cycles became cheap enough to make it feasible to execute an operating system kernel using a simulation of real hardware.
 
+Our system, called Nachos, makes it possible to give assignments that require students to write significant portions of each of the major pieces of a modern operating system: thread management, file systems, multiprogramming, virtual memory, and networking. 
+We use these assignments to illustrate concepts that we believe are necessary to understand the computer systems of today and of the future: concurrency and synchronization, caching and locality, the trade-off between simplicity and performance, building reliability from unreliable components, dynamic scheduling, the power of a level of translation, distributed computing, layering, and virtualization.
+
 to build the simplest implementation we could think of for each sub-system of Nachos
+
 Nachos maintains a simulated time that is incremented whenever a user program executes an instruction and whenever a call is made to certain low-level operating system routines. Interrupt handlers are then invoked when the simulated time reaches the appropriate point.
+thus the interrupt would not heppened bettween a instruction or a os call...
 
-To simplify matters, we omitted certain aspects of the C++ language: derived classes, operator and function overloading, and C++ streams. 
+provided the initial seed to the random number generator is the same, however, the behavior of the system is repeatable.
 
+To simplify matters, we omitted certain aspects of the C++ language: derived classes, operator and function overloading, and C++ streams.
+
+thread management and synchronization, the le system, user-level multiprogramming support, the virtual memory system, and network support. Each assignment is designed to build upon previous ones for instance, every part of Nachos uses thread primitives for managing concurrency. 
+thus, I can implement the entire system according to this order...
+
+For simplicity, thread scheduling is normally non-preemptive, but to emphasize the importance of critical sections, we have a command-line option that causes threads to be time-sliced at "random", but repeatable, points in the program.
+Well, I'm still considering for the thred scheduling algorithm... 
+
+there is no synchronization (only one thread can access the file system at a time), files have a very small maximum size, files have a xed size once created, there is no caching or buffering of le data, the le name space is completely at (there is no hierarchical directory structure), and there is no attempt at providing robustness across machine and disk crashes.
+
+One important topic we chose to leave out (again, as a tradeoff against time constraints) is the trend toward a small-kernel operating system structure, where pieces of the operating system are split off into user-level servers. Because of its modular design, it would be straightforward to move Nachos towards a small-kernel structure, except that  we have no symbolic debugging support for user programs and we would need a stub compiler to make it easy to make procedure calls across address spaces.
+
+The assignment has three parts. First, students implement the mechanism for page fault handling - their code must catch the page fault, find the needed page on disk, find a page frame in memory to hold the needed page (writing the old contents of the page frame to disk if it is dirty), read the new page from disk into memory, adjust the page table entry, and then resume the execution of the program. 
+The second part of the assignment is to devise a policy for managing the memory as a cache - for deciding which page to toss out when a new page frame is needed, in what circumstances (if any) to do read-ahead, whether or not to write unused, dirty pages back to disk in advance to speed later page fault handling, and how many pages to bring in before initially starting to run a program.
+well, this will contribute to my implement.... 
