@@ -1,11 +1,14 @@
 main parts:
-1) task scheduling
-2) file system
-3) virturl memory system
-4) mutiprograming surport
+1) task scheduling (PM)
+2) file system  (FS)
+3) virturl memory system (MM)
+4) process communication (IPC)
 5) rescue moudle
 // 6) sand box  (I/O management)
 and develope order was almost from 1) to 6)....
+
+One problem for fether thinking: 
+weather to set a system call interface to receive all the system calls and then distributed to each module...
 
 3 levels:
 r0: 5)
