@@ -6,15 +6,23 @@ class ProcessManage
 {
     private:
         ProcessManage();
+        switch_to();
+        static Process * getCurrent(){
+            return Process::current;
+        }
     protected:
         static void schedule();
-        static void sleep();
-        static void wake_up();
+        static void sleep(SleepQue& que);  //the  que was modedied by the function..so we should use &
+        static void wake_up(SleepQue& que);
         static void wait();
         static void wait_pid();
     private:
         static Process task_array[MAX_TASK_NUM];
-        static int p_task;
+        //static int p_task;
 };
+
+class SleepQue{
+    Process * QueHead;
+}
 
 #endif // PROCESSMANAGE_H
