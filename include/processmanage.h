@@ -18,7 +18,7 @@ class ProcessManage
         static void wait_pid();
     private:
         static Process task_array[MAX_TASK_NUM];
-        //static int p_task;
+        static int p_counter;
 };
 
 class SleepQue{

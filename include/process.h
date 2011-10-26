@@ -76,8 +76,8 @@ class Process
 
     protected:
         Process();
-        //Process(const Process& other); bitwise copy maybe a good idea...
-        Process& operator=(const Process& other);
+        Process(const Process& other); //bitwise copy maybe a good idea...
+        //Process& operator=(const Process& other);
 
         int getPid(){
             return pid;
