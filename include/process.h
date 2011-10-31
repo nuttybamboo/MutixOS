@@ -89,6 +89,7 @@ class Process
         Process(const Process& other, int task_index);
         //Process(const Process& other); //bitwise copy maybe a good idea...
         //Process& operator=(const Process& other);
+        ~Process();
 
         int getPid(){
             return pid;
