@@ -22,6 +22,20 @@ Process::Process()
     brk = 0;
     start_stack = 0;
 
+    ldt = {
+        {0,0},
+        {0x9f,0xc0fa00},
+		{0x9f,0xc0f200}
+		};
+
+	tss.back_link = 0;	/* 16 high bits zero */
+	tss.esp0 = 0;
+	tss.ss0 = 0;		/* 16 high bits zero */
+	tss.esp1 = &stack + STACK_SIZE;
+	tss.ss1 = 0x10;		/* 16 high bits zero */
+	tss.esp2 = 0;
+	tss.ss2 = 0;		/* 16 high bits zero */
+	tss.cr3 = MemoryManage::page_dir_address();
     tss.eip = 0;
 	tss.eflags = 0;
 	tss.eax = 0;
@@ -38,13 +52,18 @@ Process::Process()
 	tss.ds = 0x17;
 	tss.fs = 0x17;
 	tss.gs = 0x17;
+	tss.ldt = MemoryManage::get_LDT_desc(FIRST_TASK);
+    tss.trace_bitmap = 0x80000000;
 }
 
-Process::Process(const Process& other)
+Process::Process(const Process& other, int task_index)
 {
+ //   *this = other;//bit wise?
+
     pid = p_counter++;
     father = other.pid;
     state = P_STATE_WAITE;
+//*
     priority = other.priority;
     exit_code = other.exit_code;
     start_code = other.start_code;
@@ -52,23 +71,16 @@ Process::Process(const Process& other)
     end_data = other.end_data;
     brk = other.brk;
     start_stack = other.start_stack;
+//*/
+    tss = other.tss;//bit wise copy?
 
-    tss.eip = other.tss.eip;
-	tss.eflags = other.tss.eflags;
+    tss.back_link = 0;	/* 16 high bits zero */
+	tss.esp1 = &stack + STACK_SIZE;
+	tss.ss1 = 0x10;		/* 16 high bits zero */
 	tss.eax = 0;
-	tss.ecx = other.tss.ecx;
-	tss.edx = other.tss.edx;
-	tss.ebx = other.tss.ebx;
-	tss.esp = other.tss.esp;
-	tss.ebp = other.tss.ebp;
-	tss.esi = other.tss.esi;
-	tss.edi = other.tss.edi;
-	tss.es = other.tss.es & 0x17;
-	tss.cs = other.tss.cs & 0x17;
-	tss.ss = other.tss.ss & 0x17;
-	tss.ds = other.tss.ds & 0x17;
-	tss.fs = other.tss.fs & 0x17;
-	tss.gs = other.tss.gs & 0x17;
+
+	tss.ldt = MemoryManage::get_LDT_desc(task_index);
+	ss.trace_bitmap = 0x80000000;
 }
 /*
 Process& Process::operator=(const Process& rhs)

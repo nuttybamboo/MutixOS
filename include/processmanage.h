@@ -1,6 +1,9 @@
 #ifndef PROCESSMANAGE_H
 #define PROCESSMANAGE_H
 #define MAX_TASK_NUM    255
+#define TSS_ITEM    0
+#define LDT_ITEM    1
+
 
 class ProcessManage
 {
@@ -11,6 +14,7 @@ class ProcessManage
             return Process::current;
         }
     protected:
+        static int create_process();
         static void schedule();
         static void sleep(SleepQue& que);  //the  que was modedied by the function..so we should use &
         static void wake_up(SleepQue& que);

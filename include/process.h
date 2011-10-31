@@ -11,6 +11,8 @@ class Process: the abstract of the process in operation system
 #define P_STATE_WAITE   2
 #define P_STATE_DEAD    0
 
+#define STACK_SIZE  1024
+
 /*
 struct i387_struct {
 	long	cwd;
@@ -23,6 +25,9 @@ struct i387_struct {
 	long	st_space[20];//	/* 8*10 bytes for each FP-reg = 80 bytes */  /*
 };
 //*/
+typedef struct desc_struct {
+	unsigned long a,b;
+};
 
 struct tss_struct {
 	long	back_link;	/* 16 high bits zero */
@@ -72,11 +77,17 @@ class Process
         //unsigned short uid,euid,suid;
         //unsigned short gid,egid,sgid;
 
+        struct desc_struct ldt[3];
+
         struct tss_struct tss;
+
+        char[STACK_SIZE] stack;
 
     protected:
         Process();
-        Process(const Process& other); //bitwise copy maybe a good idea...
+
+        Process(const Process& other, int task_index);
+        //Process(const Process& other); //bitwise copy maybe a good idea...
         //Process& operator=(const Process& other);
 
         int getPid(){
@@ -133,6 +144,12 @@ class Process
         void setStart_stack(int start_stack){
             this -> start_stack = start_stack;
             return ;
+        }
+        unsigned long getTSS(){
+            return &tss;
+        }
+        unsigned long getLDT(){
+            return &ldt;
         }
     private:
 };

@@ -4,6 +4,13 @@ ProcessManage::ProcessManage()
 {
     //ctor
 }
+static int ProcessManage::create_process(){
+    int index = find_empty_task();
+    task_array[index](Process::current, index);
+    MemoryManage::set_TSS_desc(index,task_array[index].getTSS());
+	MemoryManage::set_LDT_desc(index,task_array[index].getLDT());
+	task_array[index].setState(P_STATE_READY);	/* do this last, just in case */
+}
 
 static void ProcessManage::schedule(){
     int cur_task = 0;
@@ -47,5 +54,5 @@ __asm__("cmpl %%ecx,current\n\t" \
 	"clts\n" \
 	"1:" \
 	::"m" (*&__tmp.a),"m" (*&__tmp.b), \
-	"d" (_TSS(n)),"c" ((long) task_array[n])); \
+	"d" (MemoryMange::get_TSS_desc(n)),"c" ((long) task_array[n])); \
 }
