@@ -25,9 +25,6 @@ struct i387_struct {
 	long	st_space[20];//	/* 8*10 bytes for each FP-reg = 80 bytes */  /*
 };
 //*/
-typedef struct desc_struct {
-	unsigned long a,b;
-};
 
 struct tss_struct {
 	long	back_link;	/* 16 high bits zero */
@@ -72,12 +69,12 @@ class Process
         long priority;
         int exit_code;
 
-        unsigned long start_code,end_code,end_data,brk,start_stack;
+        unsigned long start_code,end_code,end_data,brk,start_stack;//maybe should in MM parts
 
         //unsigned short uid,euid,suid;
         //unsigned short gid,egid,sgid;
 
-        struct desc_struct ldt[3];
+        //ldt_table ldt[3]; //maybe should in MM parts
 
         struct tss_struct tss;
 

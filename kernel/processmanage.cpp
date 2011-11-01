@@ -23,9 +23,12 @@ static int ProcessManage::find_process(int pid){
 
 static int ProcessManage::fork_process(){
     int index = find_empty_task();
-    task_array[index] = new Process(Process::current, index);
+    Process * p = task_array[index] = (Process*) MemoryManage::get_empty_page();
+    (task_array[index])(Process::current, index);//??
     MemoryManage::set_TSS_desc(index,task_array[index] -> getTSS());
-	MemoryManage::set_LDT_desc(index,task_array[index] -> getLDT());
+	task_array[index] -> setStart_code(
+        MemoryManage::set_LDT_desc(index, find_process(Process::current -> getPID()))
+    );
 	task_array[index] -> setState(P_STATE_READY);
 	return 	task_array[index] -> getPid();
 }

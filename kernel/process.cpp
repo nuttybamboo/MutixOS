@@ -21,13 +21,13 @@ Process::Process()
     end_data = 0;
     brk = 0;
     start_stack = 0;
-
+//*
     ldt = {
         {0,0},
         {0x9f,0xc0fa00},
 		{0x9f,0xc0f200}
 		};
-
+//*/
 	tss.back_link = 0;	/* 16 high bits zero */
 	tss.esp0 = 0;
 	tss.ss0 = 0;		/* 16 high bits zero */
@@ -52,7 +52,7 @@ Process::Process()
 	tss.ds = 0x17;
 	tss.fs = 0x17;
 	tss.gs = 0x17;
-	tss.ldt = MemoryManage::get_LDT_desc(FIRST_TASK);
+	tss.ldt = MemoryManage::get_LDT_choice(FIRST_TASK);
     tss.trace_bitmap = 0x80000000;
 }
 
@@ -79,7 +79,7 @@ Process::Process(const Process& other, int task_index)
 	tss.ss1 = 0x10;		/* 16 high bits zero */
 	tss.eax = 0;
 
-	tss.ldt = MemoryManage::get_LDT_desc(task_index);
+	tss.ldt = MemoryManage::get_LDT_choice(task_index);
 	ss.trace_bitmap = 0x80000000;
 }
 /*
