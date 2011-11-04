@@ -11,6 +11,7 @@ static int ProcessManage::find_empty_task(){
             return i;
         }
     }
+    return -1;
 }
 
 static int ProcessManage::find_process(int pid){
@@ -19,11 +20,20 @@ static int ProcessManage::find_process(int pid){
             return i;
         }
     }
+    return -1;
 }
 
 static int ProcessManage::fork_process(){
     int index = find_empty_task();
-    Process * p = task_array[index] = (Process*) MemoryManage::get_empty_page();
+    if(index == -1){
+        return -ERROR_PROCESS_FULL;
+    }
+    int memory_index = find_empty_page();
+    if(memory_index == -1){
+        return -ERROR_PM_MEMORY_FULL;
+    }
+    MemoryManage::put_page(KERNEL_BASE + memory_index * PAGE_SIZE);// alloc phsical memory for the PM part..
+    Process * p = task_array[index] = KERNEL_BASE + memory_index * PAGE_SIZE;
     (task_array[index])(Process::current, index);//??
     MemoryManage::set_TSS_desc(index,task_array[index] -> getTSS());
 	task_array[index] -> setStart_code(
@@ -80,6 +90,9 @@ static inline void ProcessManage::switch_to(n) {
 
 static void ProcessManage::kill_process(int pid){
     int index = find_process(pid);
+    if(index == -1){
+        return -ERROR_PROCESS_NOT_FOUND;
+    }
     Process * pr = task_array[index];
 
     for (int i=0 ; i<MAX_TASK_NUM; i++){
@@ -94,4 +107,15 @@ static void ProcessManage::kill_process(int pid){
     FileSystem::on_process_die(index);
     delete pr;
     return;
+}
+
+
+static int ProcessManage::find_empty_page(){
+    for(int i = 0; i < PROCESS_MEMORY_PAGES_NUM; ++1){
+        if(process_memeory_map[i] == 0){
+            process_memeory_map[i] == 1;
+            return i;
+        }
+    }
+    return -1;
 }

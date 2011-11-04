@@ -4,6 +4,13 @@
 #define TSS_ITEM    0
 #define LDT_ITEM    1
 
+#define PROCESS_MEMORY_PAGES_NUM    255
+
+#define KERNEL_BASE 0x100000
+
+#define ERROR_PROCESS_FULL  1
+#define ERROR_PM_MEMORY_FULL    2
+#define ERROR_PROCESS_NOT_FOUND 3
 
 class ProcessManage
 {
@@ -14,6 +21,7 @@ class ProcessManage
             return Process::current;
         }
         static int find_empty_task();
+        static int find_empty_page();
         static int find_process(int pid);
     protected:
         static int fork_process();
@@ -26,6 +34,7 @@ class ProcessManage
     private:
         static Process * task_array[MAX_TASK_NUM];
         static int p_counter;
+        static char process_memeory_map[PROCESS_MEMORY_PAGES_NUM];
 };
 
 class SleepQue{

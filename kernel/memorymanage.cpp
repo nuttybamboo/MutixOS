@@ -43,10 +43,10 @@ static unsigned long MemoryManage::ldt_copy_mem(int index, int current_index){
 }
 
 static void MemoryManage::on_process_die(int index){
-    ldt_table * p_ldt = ldt_array[index];
+    ldt_table p_ldt = ldt_array[index];
 
-    free_page_tables(get_base((*p_ldt)[1]),get_limit(0x0f));
-	free_page_tables(get_base((*p_ldt)[2]),get_limit(0x17));
+    free_page_tables(get_base(p_ldt[1]),get_limit(0x0f));
+	free_page_tables(get_base(p_ldt[2]),get_limit(0x17));
 }
 
 
@@ -90,17 +90,24 @@ static void MemoryManage::free_page(unsigned long addr)
 		panic("trying to free nonexistent page");
 	addr -= LOW_MEM;
 	addr >>= 12;
-	if(mem_map[addr]--){
+	if(memory_map[addr]--){
         return;
 	}
-	mem_map[addr] = 0;
+	memory_map[addr] = 0;
 	//panic  free free page
 	return;
 }
 
+static unsigned long MemoryManage::get_free_page(){
+    for(int i = 0; i < PAGING_PAGES; ++i){
+        if(memory_map[i] == 0){
+            memory_map[i] ++;
+             return (i << 12) + LOW_MEM;
+        }
+    }
+    panic("no more free memory !");
 
-static unsigned long MemoryManage::get_free_page()
-{
+    /*
 register unsigned long __res asm("ax");
 
 __asm__("std ; repne ; scasb\n\t"
@@ -119,6 +126,14 @@ __asm__("std ; repne ; scasb\n\t"
 	"D" (mem_map+PAGING_PAGES-1)
 	);
 return __res;
+*/
+}
+
+static void MemoryManage::put_page(unsigned long liner_address)
+{
+    int physical_address = get_free_page();
+
+    write_page_table(liner_address, physical_address);
 }
 
 
@@ -130,8 +145,8 @@ static void MemoryManage::write_page_table(unsigned long address, unsigned long 
 
 	if (page < LOW_MEM || page >= HIGH_MEMORY)
 		printk("Trying to put page %p at %p\n",page,address);
-	if (mem_map[(page-LOW_MEM)>>12] != 1)
-		printk("mem_map disagrees with %p at %p\n",page,address);
+	if (memory_map[(page-LOW_MEM)>>12] != 1)
+		printk("memory_map disagrees with %p at %p\n",page,address);
 
 
 	page_table = (unsigned long *) ((address>>20) & 0xffc);

@@ -11,6 +11,8 @@
 
 #define SEG_LENGTH  0x4000000
 
+#define PAGE_SIZE   4096
+
 #define LOW_MEM 0x100000
 #define PAGING_MEMORY (15*1024*1024)
 #define PAGING_PAGES (PAGING_MEMORY>>12)
@@ -55,7 +57,8 @@ class MemoryManage
                              ( (int) (ldt_array + current_index) ), "0x82");
             return start_code;
         }
-        static unsigned long get_empty_page();
+        static unsigned long get_empty_page();   // find a free physical page and alloc a linner address for it then return the linner address
+        static void put_page(unsigned long liner_address);   // find a free physical page and associate it with the linner address
         static void on_process_die(int index);
     private:
         MemoryManage();
