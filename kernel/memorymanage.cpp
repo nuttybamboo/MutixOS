@@ -42,6 +42,53 @@ static unsigned long MemoryManage::ldt_copy_mem(int index, int current_index){
 
 }
 
+//well the copy and free op is base on every 4MB.....well, linus is so lasy...an so am I
+static bool MemoryManage::copy_page_tables(unsigned long source_base, unsigned long dect_base, unsigned long limit){
+    unsigned long * source_table, * dect_table;
+	unsigned long source_dir, dect_dir;
+/*
+	if (from & 0x3fffff)
+		panic("free_page_tables called with wrong alignment");
+	if (!from)
+		panic("Trying to free up swapper memory space");
+//*/
+	unsigned long size = (limit + 0x3fffff) >> 22;
+	source_dir = source_base >> 22;
+	dect_dir = dect_base >> 22;
+	for ( int j = 0; size > j; j++ ) {
+		if (( page_dir[dect_dir + j] ) & 1){
+		    panic("dect page is exsit...");
+		    return false;
+		}
+
+		if (!(1 & page_dir[source_dir + j]))
+			continue;
+		source_table = (unsigned long *) (0xfffff000 & page_dir[source_dir + j]);
+
+        //the page_table should not exist...we just create it...
+        if (!(tmp=get_free_page()))
+            return false;
+        page_dir[dect_dir + j] = tmp|7;
+        dect_table = (unsigned long *) tmp;
+
+		for (int i=0 ; i < ( ( source_base == 0 ) ? 0xA0 : 1024 ) ; i++) {
+            current_page = source_table[i];
+			if (!(1 & current_page))
+				continue;
+
+			current_page &= ~2;    //make it copy on write....
+			dect_table[i] = current_page;
+			if (current_page > LOW_MEM) {
+				source_table[i] = current_page;
+				current_page -= LOW_MEM;
+				current_page >>= 12;
+				mem_map[current_page]++;
+			}
+		}
+	}
+	return true;
+}
+
 static void MemoryManage::on_process_die(int index){
     ldt_table p_ldt = ldt_array[index];
 
@@ -53,10 +100,10 @@ static void MemoryManage::on_process_die(int index){
 
 
 
-static void MemoryManage::free_page_tables(unsigned long from,unsigned long size)
+static bool MemoryManage::free_page_tables(unsigned long from,unsigned long size)
 {
 	unsigned long * pg_table;
-	unsigned long * dir, nr;
+	unsigned long dir;
 /*
 	if (from & 0x3fffff)
 		panic("free_page_tables called with wrong alignment");
@@ -64,26 +111,25 @@ static void MemoryManage::free_page_tables(unsigned long from,unsigned long size
 		panic("Trying to free up swapper memory space");
 //*/
 	size = (size + 0x3fffff) >> 22;
-	dir = (unsigned long *) ((from>>20) & 0xffc); /* _pg_dir = 0 */
-	for ( ; size-->0 ; dir++) {
-		if (!(1 & *dir))
+	dir = from >> 22;
+	for ( int j = 0; size > j; j++ ) {
+		if (!(1 & page_dir[dir + j]))
 			continue;
-		pg_table = (unsigned long *) (0xfffff000 & *dir);
-		for (nr=0 ; nr<1024 ; nr++) {
-			if (1 & *pg_table)
-				free_page(0xfffff000 & *pg_table);
-			*pg_table = 0;
-			pg_table++;
+		pg_table = (unsigned long *) (0xfffff000 & page_dir[dir + j]);
+		for (int i=0 ; i < 1024 ; i++) {
+			if (1 & pg_table[i])
+				free_page(0xfffff000 & pg_table[i]);
+			pg_table[i] = 0;
 		}
-		free_page(0xfffff000 & *dir);
-		*dir = 0;
+		free_page(0xfffff000 & page_dir[dir + j]);
+		page_dir[dir + j] = 0;
 	}
-	invalidate();
-	return 0;
+	//invalidate();
+	return true;
 }
 
 
-static void MemoryManage::free_page(unsigned long addr)
+static bool MemoryManage::free_page(unsigned long addr)
 {
 	if (addr < LOW_MEM) return;
 	if (addr >= HIGH_MEMORY)
@@ -91,11 +137,11 @@ static void MemoryManage::free_page(unsigned long addr)
 	addr -= LOW_MEM;
 	addr >>= 12;
 	if(memory_map[addr]--){
-        return;
+        return true;
 	}
 	memory_map[addr] = 0;
 	//panic  free free page
-	return;
+	return false;
 }
 
 static unsigned long MemoryManage::get_free_page(){
@@ -106,7 +152,7 @@ static unsigned long MemoryManage::get_free_page(){
         }
     }
     panic("no more free memory !");
-
+    return 0;
     /*
 register unsigned long __res asm("ax");
 
@@ -137,28 +183,35 @@ static void MemoryManage::put_page(unsigned long liner_address)
 }
 
 
-static void MemoryManage::write_page_table(unsigned long address, unsigned long page){
+static bool MemoryManage::write_page_table(unsigned long address, unsigned long page){
 
-	unsigned long tmp, *page_table;
+	unsigned long tmp, *page_table, table_item_offset;
 
 /* NOTE !!! This uses the fact that _pg_dir=0 */
 
 	if (page < LOW_MEM || page >= HIGH_MEMORY)
 		printk("Trying to put page %p at %p\n",page,address);
-	if (memory_map[(page-LOW_MEM)>>12] != 1)
+	if (memory_map[(page-LOW_MEM) >> 12] != 1)
 		printk("memory_map disagrees with %p at %p\n",page,address);
 
-
-	page_table = (unsigned long *) ((address>>20) & 0xffc);
-	if ((*page_table)&1)
-		page_table = (unsigned long *) (0xfffff000 & *page_table);
+    //get the high 10 bit, its the offset of the liner address's page_table in the page_dir
+	table_item_offset = address >> 22;
+	if (( page_dir[table_item_offset] ) & 1)
+		page_table = (unsigned long *) (0xfffff000 & page_dir[table_item_offset]);
 	else {
+	    //when the page_table is not exist...wo should create it...
 		if (!(tmp=get_free_page()))
-			return 0;
-		*page_table = tmp|7;
+			return false;
+		page_dir[table_item_offset] = tmp|7;
 		page_table = (unsigned long *) tmp;
 	}
+	// the 10 bit in the middle is the offset of the table_item
+	//associated with the address in the page_table
+	// >> 12 then left the high 20 bit, &0x3ff then left the middle 10 bits...the high 10 is set 0
 	page_table[(address>>12) & 0x3ff] = page | 7;
-/* no need for invalidate */
-	return;
+	//well the page_table is somthing to save which physical page is associated with one liner address...
+	//so the value in the item of the page_table witch is correspond to the linear address
+	//obviously is the physical page's id, the physical address this time..
+	/* no need for invalidate */
+	return true;
 }

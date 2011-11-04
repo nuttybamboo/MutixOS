@@ -2,6 +2,7 @@
 #define MEMORYMANAGE_H
 
 #define PAGE_DIR_NUM    1024
+#define PAGE_TABLE_NUM  1024
 
 #define FIRST_TSS_ENTRY 4
 #define FIRST_LDT_ENTRY (FIRST_TSS_ENTRY+1)
@@ -26,13 +27,15 @@ typedef struct desc_struct {
 
 typedef struct desc_struct[LDT_TABLE_NUM] ldt_table;
 
+typedef struct long[PAGE_TABLE_NUM] page_table_type;
+
 class MemoryManage
 {
     private:
         static desc_table gdt;   //the gdt table
         static ldt_table ldt_array[MAX_TASK_NUM];
         static char memory_map[PAGING_PAGES];
-        static long page_dir[PAGE_DIR_NUM];
+        static unsigned long page_dir[PAGE_DIR_NUM];
     protected:
         static void on_page_fault();
         static unsigned long page_dir_address(){
@@ -64,10 +67,10 @@ class MemoryManage
         MemoryManage();
         static long find_wapped_out();
         static unsigned long ldt_copy_mem(int index, int current_index);
-        static void free_page_tables(unsigned long from, unsigned long size);
-        static void copy_page_tables(unsigned long source_base, unsigned long dect_base, unsigned long limit);
-        static void write_page_table(unsigned long address, unsigned long page);
-        static void free_page(unsigned long addr);
+        static bool free_page_tables(unsigned long from, unsigned long size);
+        static bool copy_page_tables(unsigned long source_base, unsigned long dect_base, unsigned long limit);
+        static bool write_page_table(unsigned long address, unsigned long page);
+        static bool free_page(unsigned long addr);
         static unsigned long get_free_page();
 };
 
