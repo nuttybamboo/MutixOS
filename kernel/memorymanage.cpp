@@ -1,26 +1,82 @@
-#include "memorymanage.h"
+#include "../include/memorymanage.h"
 
 MemoryManage::MemoryManage()
 {
     //ctor
 }
 
-ldt * MemoryManage::get_current_ldt(){
+/*
+unsigned long MemoryManage::get_current_ldt(){
 
 }
+//*/
 
-static unsigned long MemoryManage::ldt_copy_mem(int index, int current_index){
+#define get_base(ldt) _get_base( ((char *)&(ldt)) )
+
+#define get_limit(segment) ({ \
+unsigned long __limit; \
+__asm__("lsll %1,%0\n\tincl %0":"=r" (__limit):"r" (segment)); \
+__limit;})
+
+
+static inline unsigned long _get_base(char * addr)
+{
+         unsigned long __base;
+         __asm__("movb %3,%%dh\n\t"
+                 "movb %2,%%dl\n\t"
+                 "shll $16,%%edx\n\t"
+                 "movw %1,%%dx"
+                 :"=&d" (__base)
+                 :"m" (*((addr)+2)),
+                  "m" (*((addr)+4)),
+                  "m" (*((addr)+7)));
+         return __base;
+}
+
+
+#define _set_base(addr,base)  \
+__asm__ ("push %%edx\n\t" \
+	"movw %%dx,%0\n\t" \
+	"rorl $16,%%edx\n\t" \
+	"movb %%dl,%1\n\t" \
+	"movb %%dh,%2\n\t" \
+	"pop %%edx" \
+	::"m" (*((addr)+2)), \
+	 "m" (*((addr)+4)), \
+	 "m" (*((addr)+7)), \
+	 "d" (base) \
+	)
+
+#define _set_limit(addr,limit) \
+__asm__ ("push %%edx\n\t" \
+	"movw %%dx,%0\n\t" \
+	"rorl $16,%%edx\n\t" \
+	"movb %1,%%dh\n\t" \
+	"andb $0xf0,%%dh\n\t" \
+	"orb %%dh,%%dl\n\t" \
+	"movb %%dl,%1\n\t" \
+	"pop %%edx" \
+	::"m" (*(addr)), \
+	 "m" (*((addr)+6)), \
+	 "d" (limit) \
+	)
+
+#define set_base(ldt,base) _set_base( ((char *)&(ldt)) , (base) )
+#define set_limit(ldt,limit) _set_limit( ((char *)&(ldt)) , (limit-1)>>12 )
+
+
+unsigned long MemoryManage::ldt_copy_mem(int index, int current_index){
 
     unsigned long old_data_base,new_data_base,data_limit;
 	unsigned long old_code_base,new_code_base,code_limit;
 
-	ldt_table p_ldt = ldt_array[index];
-	ldt_table c_ldt = ldt_array[current_index];
+	ldt_table * p_ldt = &ldt_array[index];// * LDT_TABLE_SIZE];
+	ldt_table * c_ldt = &ldt_array[current_index];// * LDT_TABLE_SIZE];
 
 	code_limit=get_limit(0x0f);
 	data_limit=get_limit(0x17);//???what's this
-	old_code_base = get_base( c_ldt[1]);
-	old_data_base = get_base( c_ldt[2]);
+	old_code_base = get_base( (*c_ldt)[1]);
+	old_data_base = get_base( (*c_ldt)[2]);
 	/*
 	if (old_data_base != old_code_base)
 		panic("We don't support separate I&D");
@@ -33,19 +89,19 @@ static unsigned long MemoryManage::ldt_copy_mem(int index, int current_index){
 	set_base( p_ldt[1], new_code_base);
 	set_base( p_ldt[2], new_data_base);
 
-	if (copy_page_tables(old_data_base,new_data_base,data_limit)) {
-		printk("free_page_tables: from copy_mem\n");
+	if (!copy_page_tables(old_data_base,new_data_base,data_limit)) {
+		//printk("free_page_tables: from copy_mem\n");
 		free_page_tables(new_data_base,data_limit);
-		return -ENOMEM;
+		return 0;
 	}
 	return new_code_base;
 
 }
 
 //well the copy and free op is base on every 4MB.....well, linus is so lasy...an so am I
-static bool MemoryManage::copy_page_tables(unsigned long source_base, unsigned long dect_base, unsigned long limit){
+bool MemoryManage::copy_page_tables(unsigned long source_base, unsigned long dect_base, unsigned long limit){
     unsigned long * source_table, * dect_table;
-	unsigned long source_dir, dect_dir;
+	unsigned long source_dir, dect_dir,tmp;
 /*
 	if (from & 0x3fffff)
 		panic("free_page_tables called with wrong alignment");
@@ -57,7 +113,7 @@ static bool MemoryManage::copy_page_tables(unsigned long source_base, unsigned l
 	dect_dir = dect_base >> 22;
 	for ( int j = 0; size > j; j++ ) {
 		if (( page_dir[dect_dir + j] ) & 1){
-		    panic("dect page is exsit...");
+		    //panic("dect page is exsit...");
 		    return false;
 		}
 
@@ -71,8 +127,8 @@ static bool MemoryManage::copy_page_tables(unsigned long source_base, unsigned l
         page_dir[dect_dir + j] = tmp|7;
         dect_table = (unsigned long *) tmp;
 
-		for (int i=0 ; i < ( ( source_base == 0 ) ? 0xA0 : 1024 ) ; i++) {
-            current_page = source_table[i];
+		for (int i=0 ; i < ( ( source_base == 0 ) ? 0xA0 : PAGE_TABLE_SIZE ) ; i++) {
+            unsigned long current_page = source_table[i];
 			if (!(1 & current_page))
 				continue;
 
@@ -82,25 +138,25 @@ static bool MemoryManage::copy_page_tables(unsigned long source_base, unsigned l
 				source_table[i] = current_page;
 				current_page -= LOW_MEM;
 				current_page >>= 12;
-				mem_map[current_page]++;
+				memory_map[current_page]++;
 			}
 		}
 	}
 	return true;
 }
 
-static void MemoryManage::on_process_die(int index){
-    ldt_table p_ldt = ldt_array[index];
+void MemoryManage::on_process_die(int index){
+    ldt_table * p_ldt = &ldt_array[index];
 
-    free_page_tables(get_base(p_ldt[1]),get_limit(0x0f));
-	free_page_tables(get_base(p_ldt[2]),get_limit(0x17));
+    free_page_tables(get_base((*p_ldt)[1]),get_limit(0x0f));
+	free_page_tables(get_base((*p_ldt)[2]),get_limit(0x17));
 }
 
 
 
 
 
-static bool MemoryManage::free_page_tables(unsigned long from,unsigned long size)
+bool MemoryManage::free_page_tables(unsigned long from,unsigned long size)
 {
 	unsigned long * pg_table;
 	unsigned long dir;
@@ -116,7 +172,7 @@ static bool MemoryManage::free_page_tables(unsigned long from,unsigned long size
 		if (!(1 & page_dir[dir + j]))
 			continue;
 		pg_table = (unsigned long *) (0xfffff000 & page_dir[dir + j]);
-		for (int i=0 ; i < 1024 ; i++) {
+		for (int i=0 ; i < PAGE_TABLE_SIZE ; i++) {
 			if (1 & pg_table[i])
 				free_page(0xfffff000 & pg_table[i]);
 			pg_table[i] = 0;
@@ -129,11 +185,11 @@ static bool MemoryManage::free_page_tables(unsigned long from,unsigned long size
 }
 
 
-static bool MemoryManage::free_page(unsigned long addr)
+bool MemoryManage::free_page(unsigned long addr)
 {
-	if (addr < LOW_MEM) return;
-	if (addr >= HIGH_MEMORY)
-		panic("trying to free nonexistent page");
+	if (addr < LOW_MEM) return true;
+	//if (addr >= HIGH_MEMORY)
+		//panic("trying to free nonexistent page");
 	addr -= LOW_MEM;
 	addr >>= 12;
 	if(memory_map[addr]--){
@@ -144,14 +200,14 @@ static bool MemoryManage::free_page(unsigned long addr)
 	return false;
 }
 
-static unsigned long MemoryManage::get_free_page(){
+unsigned long MemoryManage::get_free_page(){
     for(int i = 0; i < PAGING_PAGES; ++i){
         if(memory_map[i] == 0){
             memory_map[i] ++;
              return (i << 12) + LOW_MEM;
         }
     }
-    panic("no more free memory !");
+    //panic("no more free memory !");
     return 0;
     /*
 register unsigned long __res asm("ax");
@@ -175,7 +231,7 @@ return __res;
 */
 }
 
-static void MemoryManage::put_page(unsigned long liner_address)
+void MemoryManage::put_page(unsigned long liner_address)
 {
     int physical_address = get_free_page();
 
@@ -183,16 +239,16 @@ static void MemoryManage::put_page(unsigned long liner_address)
 }
 
 
-static bool MemoryManage::write_page_table(unsigned long address, unsigned long page){
+bool MemoryManage::write_page_table(unsigned long address, unsigned long page){
 
 	unsigned long tmp, *page_table, table_item_offset;
 
 /* NOTE !!! This uses the fact that _pg_dir=0 */
 
-	if (page < LOW_MEM || page >= HIGH_MEMORY)
-		printk("Trying to put page %p at %p\n",page,address);
-	if (memory_map[(page-LOW_MEM) >> 12] != 1)
-		printk("memory_map disagrees with %p at %p\n",page,address);
+	//if (page < LOW_MEM || page >= HIGH_MEMORY)
+		//printk("Trying to put page %p at %p\n",page,address);
+	//if (memory_map[(page-LOW_MEM) >> 12] != 1)
+		//printk("memory_map disagrees with %p at %p\n",page,address);
 
     //get the high 10 bit, its the offset of the liner address's page_table in the page_dir
 	table_item_offset = address >> 22;

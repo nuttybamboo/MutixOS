@@ -1,14 +1,16 @@
+#include "../include/config.h"
+
 #ifndef MEMORYMANAGE_H
 #define MEMORYMANAGE_H
 
-#define PAGE_DIR_NUM    1024
-#define PAGE_TABLE_NUM  1024
+#define PAGE_DIR_SIZE    1024
+#define PAGE_TABLE_SIZE  1024
 
 #define FIRST_TSS_ENTRY 4
 #define FIRST_LDT_ENTRY (FIRST_TSS_ENTRY+1)
 
-#define GDT_TABLE_MAX_NUM   256
-#define LDT_TABLE_NUM   3
+#define GDT_TABLE_MAX_SIZE   256
+#define LDT_TABLE_SIZE   3
 
 #define SEG_LENGTH  0x4000000
 
@@ -21,25 +23,40 @@
 
 #define HIGH_MEMORY PAGING_MEMORY + LOW_MEM
 
+
+
+#define _set_tssldt_desc(n,addr,type) \
+__asm__ ("movw $104,%1\n\t" \
+	"movw %%ax,%2\n\t" \
+	"rorl $16,%%eax\n\t" \
+	"movb %%al,%3\n\t" \
+	"movb $" type ",%4\n\t" \
+	"movb $0x00,%5\n\t" \
+	"movb %%ah,%6\n\t" \
+	"rorl $16,%%eax" \
+	::"a" (addr), "m" (*(n)), "m" (*(n+2)), "m" (*(n+4)), \
+	 "m" (*(n+5)), "m" (*(n+6)), "m" (*(n+7)) \
+	)
+
+
 typedef struct desc_struct {
 	unsigned long a,b;
-}desc_table[GDT_TABLE_MAX_NUM];
+}desc_table[GDT_TABLE_MAX_SIZE];
 
-typedef struct desc_struct[LDT_TABLE_NUM] ldt_table;
-
-typedef struct long[PAGE_TABLE_NUM] page_table_type;
+typedef struct desc_struct ldt_table[LDT_TABLE_SIZE];
 
 class MemoryManage
 {
     private:
         static desc_table gdt;   //the gdt table
-        static ldt_table ldt_array[MAX_TASK_NUM];
+        static ldt_table ldt_array[MAX_TASK_NUM];//[LDT_TABLE_SIZE];
         static char memory_map[PAGING_PAGES];
-        static unsigned long page_dir[PAGE_DIR_NUM];
+        static unsigned long page_dir[PAGE_DIR_SIZE];
+
     protected:
         static void on_page_fault();
         static unsigned long page_dir_address(){
-            return &page_dir;
+            return (unsigned long)page_dir;
         }
         static unsigned long get_LDT_choice(int index){
             return ((((unsigned long) index) << 4) + (FIRST_LDT_ENTRY << 3));
@@ -57,12 +74,13 @@ class MemoryManage
             unsigned long start_code = ldt_copy_mem(index, current_index);
             _set_tssldt_desc(
                              ( (char *) ( gdt + (((unsigned long) index) << 1) + FIRST_LDT_ENTRY ) ),
-                             ( (int) (ldt_array + current_index) ), "0x82");
+                             ( (int) (unsigned long)(ldt_array + current_index) ), "0x82");
             return start_code;
         }
         static unsigned long get_empty_page();   // find a free physical page and alloc a linner address for it then return the linner address
         static void put_page(unsigned long liner_address);   // find a free physical page and associate it with the linner address
         static void on_process_die(int index);
+
     private:
         MemoryManage();
         static long find_wapped_out();
@@ -79,16 +97,4 @@ class MemoryManage
 
 
 
-#define _set_tssldt_desc(n,addr,type) \
-__asm__ ("movw $104,%1\n\t" \
-	"movw %%ax,%2\n\t" \
-	"rorl $16,%%eax\n\t" \
-	"movb %%al,%3\n\t" \
-	"movb $" type ",%4\n\t" \
-	"movb $0x00,%5\n\t" \
-	"movb %%ah,%6\n\t" \
-	"rorl $16,%%eax" \
-	::"a" (addr), "m" (*(n)), "m" (*(n+2)), "m" (*(n+4)), \
-	 "m" (*(n+5)), "m" (*(n+6)), "m" (*(n+7)) \
-	)
 

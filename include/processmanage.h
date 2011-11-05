@@ -1,6 +1,6 @@
 #ifndef PROCESSMANAGE_H
 #define PROCESSMANAGE_H
-#define MAX_TASK_NUM    255
+
 #define TSS_ITEM    0
 #define LDT_ITEM    1
 
