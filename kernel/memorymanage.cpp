@@ -11,59 +11,36 @@ unsigned long MemoryManage::get_current_ldt(){
 }
 //*/
 
-#define get_base(ldt) _get_base( ((char *)&(ldt)) )
 
-#define get_limit(segment) ({ \
-unsigned long __limit; \
-__asm__("lsll %1,%0\n\tincl %0":"=r" (__limit):"r" (segment)); \
-__limit;})
-
-
-static inline unsigned long _get_base(char * addr)
-{
-         unsigned long __base;
-         __asm__("movb %3,%%dh\n\t"
-                 "movb %2,%%dl\n\t"
-                 "shll $16,%%edx\n\t"
-                 "movw %1,%%dx"
-                 :"=&d" (__base)
-                 :"m" (*((addr)+2)),
-                  "m" (*((addr)+4)),
-                  "m" (*((addr)+7)));
-         return __base;
+inline void MemoryManage::set_base(desc_struct * ldt_address, unsigned long base){
+    ldt_address -> a &= 0x0000FFFF;     //0000YYYY
+    ldt_address -> a |= ((base & 0xFFFF) << 16) | 0xFFFF;    // 0000YYYY | XXXXFFFF = XXXXYYYY
+    ldt_address -> b &= 0x00FFFF00;    //00YYYY00
+    ldt_address -> b |= (base & 0xFF000000 ) | (base & 0xFF0000) >> 16 | 0x00FFFFF00;  //00YYYY00 | 0xXXFFFFZZ = XXYYYYZZ
+    return ;
 }
 
+inline void MemoryManage::set_limit(desc_struct * ldt_address, unsigned long limit){
+    ldt_address -> a &= 0xFFFF0000;
+    lad_address -> a |= (limit & 0xFFFF) | 0x0xFFFF0000;
+    ldt_address -> b &= 0xFFF0FFFF;
+    ldt_address -> b |= (limit & 0x000F0000) | 0xFFF0FFFF;
 
-#define _set_base(addr,base)  \
-__asm__ ("push %%edx\n\t" \
-	"movw %%dx,%0\n\t" \
-	"rorl $16,%%edx\n\t" \
-	"movb %%dl,%1\n\t" \
-	"movb %%dh,%2\n\t" \
-	"pop %%edx" \
-	::"m" (*((addr)+2)), \
-	 "m" (*((addr)+4)), \
-	 "m" (*((addr)+7)), \
-	 "d" (base) \
-	)
+    return ;
+}
 
-#define _set_limit(addr,limit) \
-__asm__ ("push %%edx\n\t" \
-	"movw %%dx,%0\n\t" \
-	"rorl $16,%%edx\n\t" \
-	"movb %1,%%dh\n\t" \
-	"andb $0xf0,%%dh\n\t" \
-	"orb %%dh,%%dl\n\t" \
-	"movb %%dl,%1\n\t" \
-	"pop %%edx" \
-	::"m" (*(addr)), \
-	 "m" (*((addr)+6)), \
-	 "d" (limit) \
-	)
+inline unsigned long MemoryManage::get_base(desc_struct ldt_address){
+    unsigned long _base = ( (ldt_address -> a & 0xFFFF0000) >> 16 ) & 0xFFFF;
+    _base |= ldt_address -> b & 0xFF000000;
+    _base |= ( ( ldt_address -> b & 0xFF ) << 16 ) & 0xFF0000;
+    return _base;
+}
 
-#define set_base(ldt,base) _set_base( ((char *)&(ldt)) , (base) )
-#define set_limit(ldt,limit) _set_limit( ((char *)&(ldt)) , (limit-1)>>12 )
-
+inline unsigned long MemoryManage::get_limit(desc_struct ldt_address){
+    unsigned long _limit = ldt_address -> a & 0xFFFF;
+    _limit += ldt_address -> b & 0xF0000;
+    return _limit;
+}
 
 unsigned long MemoryManage::ldt_copy_mem(int index, int current_index){
 
@@ -73,10 +50,10 @@ unsigned long MemoryManage::ldt_copy_mem(int index, int current_index){
 	ldt_table * p_ldt = &ldt_array[index];// * LDT_TABLE_SIZE];
 	ldt_table * c_ldt = &ldt_array[current_index];// * LDT_TABLE_SIZE];
 
-	code_limit=get_limit(0x0f);
-	data_limit=get_limit(0x17);//???what's this
-	old_code_base = get_base( (*c_ldt)[1]);
-	old_data_base = get_base( (*c_ldt)[2]);
+	code_limit=get_limit( (*c_ldt)[1] );
+	data_limit=get_limit( (*c_ldt)[2] );//???what's this
+	old_code_base = get_base( (*c_ldt)[1] );
+	old_data_base = get_base( (*c_ldt)[2] );
 	/*
 	if (old_data_base != old_code_base)
 		panic("We don't support separate I&D");
@@ -86,8 +63,11 @@ unsigned long MemoryManage::ldt_copy_mem(int index, int current_index){
 	new_data_base = new_code_base = index * SEG_LENGTH;
 	//p -> setStart_code(new_code_base);
 
-	set_base( p_ldt[1], new_code_base);
-	set_base( p_ldt[2], new_data_base);
+	set_base( &( (*p_ldt)[1] ), new_code_base);
+	set_base( &( (*p_ldt)[2] ), new_data_base);
+
+	set_limit( &( (*p_ldt)[1] ), code_limit);
+	set_limit( &( (*p_ldt)[2] ), data_limit);
 
 	if (!copy_page_tables(old_data_base,new_data_base,data_limit)) {
 		//printk("free_page_tables: from copy_mem\n");
@@ -124,7 +104,7 @@ bool MemoryManage::copy_page_tables(unsigned long source_base, unsigned long dec
         //the page_table should not exist...we just create it...
         if (!(tmp=get_free_page()))
             return false;
-        page_dir[dect_dir + j] = tmp|7;
+        page_dir[dect_dir + j] = tmp | 7;
         dect_table = (unsigned long *) tmp;
 
 		for (int i=0 ; i < ( ( source_base == 0 ) ? 0xA0 : PAGE_TABLE_SIZE ) ; i++) {
@@ -136,9 +116,7 @@ bool MemoryManage::copy_page_tables(unsigned long source_base, unsigned long dec
 			dect_table[i] = current_page;
 			if (current_page > LOW_MEM) {
 				source_table[i] = current_page;
-				current_page -= LOW_MEM;
-				current_page >>= 12;
-				memory_map[current_page]++;
+				memory_map[MAP_NR(current_page)]++;
 			}
 		}
 	}
@@ -190,12 +168,10 @@ bool MemoryManage::free_page(unsigned long addr)
 	if (addr < LOW_MEM) return true;
 	//if (addr >= HIGH_MEMORY)
 		//panic("trying to free nonexistent page");
-	addr -= LOW_MEM;
-	addr >>= 12;
-	if(memory_map[addr]--){
+	if(memory_map[MAP_NR(addr)]--){
         return true;
 	}
-	memory_map[addr] = 0;
+	memory_map[MAP_NR(addr)] = 0;
 	//panic  free free page
 	return false;
 }
@@ -271,3 +247,99 @@ bool MemoryManage::write_page_table(unsigned long address, unsigned long page){
 	/* no need for invalidate */
 	return true;
 }
+
+
+
+inline void MemoryManage::set_tssldt_desc(desc_struct * desc_address, unsigned long aim_addr, unsigned type){
+    desc_address -> a &= 0x00;
+    desc_address -> b &= 0x00;
+    desc_address -> a |= 0xFFFF0068;
+    desc_address -> a |= ( (aim_addr & 0xFFFF) << 16 ) | 0x0000FFFF;
+    desc_address -> b |= 0xFFFF00FF | (type << 8);
+    desc_address -> b |= 0x00FFFF00 | (aim_addr & 0xFF000000) | ( (aim_addr & 0xFF0000) >> 16 );
+    desc_address -> b &= 0xFF00FFFF;
+    return;
+}
+
+
+
+void MemoryManage::copy_on_write(unsigned long error_code,unsigned long address)
+{
+/* we cannot do this yet: the estdio library writes to code space */
+/* stupid, stupid. I really want the libc.a from GNU */
+
+    unsigned long * page_table = 0xfffff000 & page_dir[address >> 22];
+	un_wp_page( (unsigned long *) page_table[ (address>>12) & 0xffc] );
+
+}
+
+/**
+* copy on write...
+**/
+void un_wp_page(unsigned long * table_entry)
+{
+	unsigned long old_page,new_page;
+
+	old_page = 0xfffff000 & *table_entry;
+	if (old_page >= LOW_MEM && memory_map[MAP_NR(old_page)] == 1) {
+		*table_entry |= 2;
+		//invalidate();
+		return;
+	}
+	if (!(new_page=get_free_page())){
+		//oom();
+		//panic not free page....
+    }
+	if (old_page >= LOW_MEM)
+		memory_map[MAP_NR(old_page)]--;
+	*table_entry = new_page | 7;
+	//invalidate();
+	copy_page(old_page,new_page);
+}
+
+#define copy_page(from,to) \
+__asm__("cld ; rep ; movsl"::"S" (from),"D" (to),"c" (1024))
+
+void do_no_page(unsigned long error_code,unsigned long address)
+{
+	int nr[4];
+	unsigned long tmp;
+	unsigned long page;
+	int block,i;
+
+	address &= 0xfffff000;
+	tmp = address - current->start_code;
+	if (tmp >= Process::current -> getEnd_data()) {
+		get_empty_page(address);
+		return;
+	}
+
+	if (share_page(tmp)){
+		return;
+	}
+/*
+//this is reading some data from the filesystem...and put it in the code seg of a process....
+//to make the problem simple, now we just don't consider it....
+	if (!(page = get_free_page()))
+		oom();
+ //remember that 1 block is used for header
+	block = 1 + tmp/BLOCK_SIZE;
+	for (i=0 ; i<4 ; block++,i++)
+		nr[i] = bmap(current->executable,block);
+	bread_page(page,current->executable->i_dev,nr);
+	i = tmp + 4096 - current->end_data;
+	tmp = page + 4096;
+	while (i-- > 0) {
+		tmp--;
+		*(char *)tmp = 0;
+	}
+	if (put_page(page,address))
+		return;
+	free_page(page);
+	oom();
+	//*/
+}
+
+
+
+

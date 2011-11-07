@@ -12,6 +12,7 @@
 #define ERROR_PM_MEMORY_FULL    2
 #define ERROR_PROCESS_NOT_FOUND 3
 
+
 class ProcessManage
 {
     private:
