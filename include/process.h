@@ -56,11 +56,10 @@ struct tss_struct {
 
 class Process
 {
-    friend:
-    ProcessManage::getCurrent();
-    protected:
-        static Process * current;
+    friend class ProcessManage;
     private:
+        static int p_counter;
+        static Process * current;
 
         long pid,father;
         long state;
@@ -78,21 +77,25 @@ class Process
 
         struct tss_struct tss;
 
-        char[STACK_SIZE] stack;
+        char stack[STACK_SIZE];
 
-    protected:
+    private:
         Process();
 
-        Process(const Process& other, int task_index);
+        void ProcessC(const Process& other, const int& task_index);
         //Process(const Process& other); //bitwise copy maybe a good idea...
         //Process& operator=(const Process& other);
         ~Process();
-
+    public:
         int getPid(){
             return pid;
         }
         int getFather(){
             return father;
+        }
+        void setFather(int f){
+            father = f;
+            return;
         }
         int getState(){
             return state;
@@ -144,12 +147,9 @@ class Process
             return ;
         }
         unsigned long getTSS(){
-            return &tss;
+            return (unsigned long)&tss;
         }
-        unsigned long getLDT(){
-            return &ldt;
-        }
-    private:
+
 };
 
 #endif // PROCESS_H

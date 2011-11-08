@@ -4,10 +4,10 @@ Function:The implamention of class Process.
 class Process: the abstract of the process in operation system
 **/
 
-#include "process.h"
+#include "../include/config.h"
 //init constructor...
 
-static int Process::p_counter = 0;
+int Process::p_counter = 0;
 
 Process::Process()
 {
@@ -21,7 +21,7 @@ Process::Process()
     end_data = 0;
     brk = 0;
     start_stack = 0;
-//*
+/*
     ldt = {
         {0,0},
         {0x9f,0xc0fa00},
@@ -31,7 +31,7 @@ Process::Process()
 	tss.back_link = 0;	/* 16 high bits zero */
 	tss.esp0 = 0;
 	tss.ss0 = 0;		/* 16 high bits zero */
-	tss.esp1 = &stack + STACK_SIZE;
+	tss.esp1 = (long)(&stack + STACK_SIZE);
 	tss.ss1 = 0x10;		/* 16 high bits zero */
 	tss.esp2 = 0;
 	tss.ss2 = 0;		/* 16 high bits zero */
@@ -56,7 +56,7 @@ Process::Process()
     tss.trace_bitmap = 0x80000000;
 }
 
-Process::Process(const Process& other, int task_index)
+void Process::ProcessC(const Process& other, const int& task_index)
 {
  //   *this = other;//bit wise?
 
@@ -75,12 +75,12 @@ Process::Process(const Process& other, int task_index)
     tss = other.tss;//bit wise copy?
 
     tss.back_link = 0;	/* 16 high bits zero */
-	tss.esp1 = &stack + STACK_SIZE;
+	tss.esp1 = (long)(&stack + STACK_SIZE);
 	tss.ss1 = 0x10;		/* 16 high bits zero */
 	tss.eax = 0;
 
 	tss.ldt = MemoryManage::get_LDT_choice(task_index);
-	ss.trace_bitmap = 0x80000000;
+	tss.trace_bitmap = 0x80000000;
 }
 /*
 Process& Process::operator=(const Process& rhs)

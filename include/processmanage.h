@@ -12,34 +12,36 @@
 #define ERROR_PM_MEMORY_FULL    2
 #define ERROR_PROCESS_NOT_FOUND 3
 
+class SleepQue{
+    friend class ProcessManage;
+    private:
+    Process * QueHead;
+};
+
 
 class ProcessManage
 {
     private:
         ProcessManage();
-        switch_to();
-        static Process * getCurrent(){
-            return Process::current;
-        }
+        static void switch_to(int next);
         static int find_empty_task();
         static int find_empty_page();
         static int find_process(int pid);
-    protected:
+    public:
+        static Process * getCurrent(){
+            return Process::current;
+        }
         static int fork_process();
         static void schedule();
         static void sleep(SleepQue& que);  //the  que was modedied by the function..so we should use &
         static void wake_up(SleepQue& que);
-        static void kill_process();
+        static int kill_process(int pid);
         static void wait();
         static void wait_pid();
     private:
-        static Process * task_array[MAX_TASK_NUM];
-        static int p_counter;
-        static char process_memeory_map[PROCESS_MEMORY_PAGES_NUM];
+        Process * task_array[MAX_TASK_NUM];
+        static ProcessManage * currentPM;
+        char process_memeory_map[PROCESS_MEMORY_PAGES_NUM];
 };
-
-class SleepQue{
-    Process * QueHead;
-}
 
 #endif // PROCESSMANAGE_H

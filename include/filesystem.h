@@ -6,7 +6,8 @@ class FileSystem
 {
     private:
         FileSystem();
-    protected:
+    public:
+        static void on_process_die(int index);
         static void fcreate();
         static void fdelete();
         static void fread();

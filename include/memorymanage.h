@@ -37,16 +37,17 @@ typedef struct desc_struct ldt_table[LDT_TABLE_SIZE];
 
 class MemoryManage
 {
+    friend class KernelRescue;
     private:
-        static desc_table gdt;   //the gdt table
-        static ldt_table ldt_array[MAX_TASK_NUM];//[LDT_TABLE_SIZE];
-        static char memory_map[PAGING_PAGES];
-        static unsigned long page_dir[PAGE_DIR_SIZE];
-
-    protected:
+        desc_table gdt;   //the gdt table
+        ldt_table ldt_array[MAX_TASK_NUM];//[LDT_TABLE_SIZE];
+        char memory_map[PAGING_PAGES];
+        unsigned long page_dir[PAGE_DIR_SIZE];
+        static MemoryManage * currentMM;
+    public:
         static void on_page_fault();
         static unsigned long page_dir_address(){
-            return (unsigned long)page_dir;
+            return (unsigned long)(currentMM -> page_dir);
         }
         static unsigned long get_LDT_choice(int index){
             return ((((unsigned long) index) << 4) + (FIRST_LDT_ENTRY << 3));
@@ -55,16 +56,16 @@ class MemoryManage
             return ((((unsigned long) index) << 4) + (FIRST_TSS_ENTRY << 3));
         }
         static long set_TSS_desc(int index, unsigned long address){
-            _set_tssldt_desc(
-                             & gdt [ (index << 1) + FIRST_TSS_ENTRY ],
-                             address, "0x89");
+            set_tssldt_desc(
+                             & (currentMM -> gdt[ (index << 1) + FIRST_TSS_ENTRY ] ),
+                             address, 0x89);
             return 0;
         }
         static unsigned long set_LDT_desc(int index, int current_index){
             unsigned long start_code = ldt_copy_mem(index, current_index);
-            _set_tssldt_desc(
-                             & gdt [ (index << 1) + FIRST_LDT_ENTRY ],
-                             (unsigned long)(&ldt_array[current_index]), "0x82");
+            set_tssldt_desc(
+                             & (currentMM -> gdt[ (index << 1) + FIRST_LDT_ENTRY ] ),
+                             (unsigned long)(& (currentMM -> ldt_array[current_index]) ), 0x82);
             return start_code;
         }
         static unsigned long get_empty_page();   // find a free physical page and alloc a linner address for it then return the linner address
@@ -75,7 +76,8 @@ class MemoryManage
         MemoryManage();
         static long find_wapped_out();
 
-        void copy_on_write(unsigned long error_code,unsigned long address);
+        static void copy_on_write(unsigned long error_code,unsigned long address);
+        static void un_wp_page(unsigned long * table_entry);
 
         static unsigned long ldt_copy_mem(int index, int current_index);
         static bool free_page_tables(unsigned long from, unsigned long size);
@@ -84,7 +86,16 @@ class MemoryManage
         static bool free_page(unsigned long addr);
         static unsigned long get_free_page();
 
-        static inline void MemoryManage::set_tssldt_desc(desc_struct * desc_address, unsigned long aim_addr, unsigned type)
+        static inline void set_tssldt_desc(desc_struct * desc_address, unsigned long aim_addr, unsigned type){
+            desc_address -> a &= 0x00;
+            desc_address -> b &= 0x00;
+            desc_address -> a |= 0xFFFF0068;
+            desc_address -> a |= ( (aim_addr & 0xFFFF) << 16 ) | 0x0000FFFF;
+            desc_address -> b |= 0xFFFF00FF | (type << 8);
+            desc_address -> b |= 0x00FFFF00 | (aim_addr & 0xFF000000) | ( (aim_addr & 0xFF0000) >> 16 );
+            desc_address -> b &= 0xFF00FFFF;
+            return;
+        }
         static inline void set_base(desc_struct * ldt_address, unsigned long base);
         static inline void set_limit(desc_struct * ldt_address, unsigned long limit);
         static inline unsigned long get_base(desc_struct ldt_address);
