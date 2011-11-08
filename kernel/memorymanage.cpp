@@ -1,6 +1,6 @@
 #include "../include/memorymanage.h"
 
-//MemoryManage::currentMM = 0;
+MemoryManage * MemoryManage::currentMM = 0;
 
 MemoryManage::MemoryManage()
 {

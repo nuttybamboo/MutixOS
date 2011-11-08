@@ -8,6 +8,7 @@ class Process: the abstract of the process in operation system
 //init constructor...
 
 int Process::p_counter = 0;
+Process * Process::current = 0;
 
 Process::Process()
 {

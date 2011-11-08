@@ -28,9 +28,7 @@ class ProcessManage
         static int find_empty_page();
         static int find_process(int pid);
     public:
-        static Process * getCurrent(){
-            return Process::current;
-        }
+        static Process * getCurrent();
         static int fork_process();
         static void schedule();
         static void sleep(SleepQue& que);  //the  que was modedied by the function..so we should use &

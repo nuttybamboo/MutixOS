@@ -1,8 +1,14 @@
 #include "../include/config.h"
 
+ProcessManage * ProcessManage::currentPM = 0;
+
 ProcessManage::ProcessManage()
 {
     //ctor
+}
+
+Process * ProcessManage::getCurrent(){
+    return Process::current;
 }
 
 int ProcessManage::find_empty_task(){
