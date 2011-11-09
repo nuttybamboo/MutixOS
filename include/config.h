@@ -9,4 +9,7 @@
 #include "../include/processmanage.h"
 #include "../include/memorymanage.h"
 #include "../include/filesystem.h"
+#include "../include/systemcall.h"
+#include "../include/interprocesscommu.h"
+
 #endif // CONFIG_H

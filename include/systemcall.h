@@ -9,7 +9,7 @@ class SystemCall
 {
     friend class KernelRescue;
     public:
-        SystemCall();
+        void SystemCallInit();
         void SetSystemCall(int system_call_number, syscall_op_function fuction);
     private:
         void on_system_call();

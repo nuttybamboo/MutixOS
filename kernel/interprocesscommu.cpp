@@ -1,7 +1,8 @@
-#include "../include/interprocesscommu.h"
+#include "../include/config.h"
 
 InterProcessCommu * InterProcessCommu::currentIPC = 0;
-InterProcessCommu::InterProcessCommu()
+
+void InterProcessCommu::InterProcessCommuInit()
 {
     //ctor
     currentIPC = this;

@@ -2,7 +2,7 @@
 
 FileSystem * FileSystem::currentFS = 0;
 
-FileSystem::FileSystem()
+void FileSystem::FileSystemInit()
 {
     //ctor
     currentFS = this;

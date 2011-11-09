@@ -1,8 +1,8 @@
-#include "../include/systemcall.h"
+#include "../include/config.h"
 
 SystemCall * SystemCall::currentSCI = 0;
 
-SystemCall::SystemCall()
+void SystemCall::SystemCallInit()
 {
     //ctor
     currentSCI = this;

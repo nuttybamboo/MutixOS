@@ -2,7 +2,7 @@
 
 ProcessManage * ProcessManage::currentPM = 0;
 
-ProcessManage::ProcessManage()
+void ProcessManage::ProcessManageInit()
 {
     //ctor
     currentPM = this;

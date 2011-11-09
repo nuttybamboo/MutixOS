@@ -23,7 +23,7 @@ class ProcessManage
 {
     friend class KernelRescue;
     private:
-        ProcessManage();
+        void ProcessManageInit();
         static void switch_to(int next);
         static int find_empty_task();
         static int find_empty_page();

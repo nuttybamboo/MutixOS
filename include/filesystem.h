@@ -6,7 +6,7 @@ class FileSystem
 {
     friend class KernelRescue;
     private:
-        FileSystem();
+        void FileSystemInit();
     public:
         static void on_process_die(int index);
         static void fcreate();

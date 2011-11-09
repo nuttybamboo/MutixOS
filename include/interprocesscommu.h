@@ -6,7 +6,7 @@ class InterProcessCommu
 {
     friend class KernelRescue;
     public:
-        InterProcessCommu();
+        void InterProcessCommuInit();
         //the return value and the parameter is up to you ^___^
         void shm_get();
         void shm_at();
@@ -16,8 +16,8 @@ class InterProcessCommu
         void sem_unlink();
     private:
     //these only called by the KRM parts to show the state of the system...its private so only the friend class KRM could access...
-        void ShowIPCDetail();
-        void ShowIPCBasic();
+        static void ShowIPCDetail();
+        static void ShowIPCBasic();
     private:
         static InterProcessCommu * currentIPC;
         // the other members should be nonesatic..

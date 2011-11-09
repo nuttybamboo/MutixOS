@@ -2,7 +2,7 @@
 
 MemoryManage * MemoryManage::currentMM = 0;
 
-MemoryManage::MemoryManage()
+void MemoryManage::MemoryManageInit()
 {
     //ctor
     MemoryManage::currentMM = this;

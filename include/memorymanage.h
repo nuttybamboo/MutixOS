@@ -73,7 +73,7 @@ class MemoryManage
         static void on_process_die(int index);
 
     private:
-        MemoryManage();
+        void MemoryManageInit();
         static long find_wapped_out();
 
         static void copy_on_write(unsigned long error_code,unsigned long address);
