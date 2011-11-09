@@ -1,5 +1,20 @@
 #include "../include/config.h"
 
+#define move_to_user_mode() \
+__asm__ ("movl %%esp,%%eax\n\t" \
+	"pushl $0x17\n\t" \
+	"pushl %%eax\n\t" \
+	"pushfl\n\t" \
+	"pushl $0x0f\n\t" \
+	"pushl $1f\n\t" \
+	"iret\n" \
+	"1:\tmovl $0x17,%%eax\n\t" \
+	"movw %%ax,%%ds\n\t" \
+	"movw %%ax,%%es\n\t" \
+	"movw %%ax,%%fs\n\t" \
+	"movw %%ax,%%gs" \
+	:::"ax")
+
 ProcessManage * ProcessManage::currentPM = 0;
 
 void ProcessManage::ProcessManageInit()
@@ -9,9 +24,15 @@ void ProcessManage::ProcessManageInit()
     task_array = {0, };
     process_memeory_map = {0, };
     process_memeory_map[FIRST_TASK] ++;
+    MemoryManage::put_page(PROCESS_MEMORY_BASE + FIRST_TASK * PAGE_SIZE);
     Process * p = task_array[FIRST_TASK] = (Process*)(PROCESS_MEMORY_BASE + FIRST_TASK * PAGE_SIZE);
     p -> ProcessInit();
-    switch_to(FIRST_TASK);
+    MemoryManage::set_TSS_desc(FIRST_TASK, p -> getTSS());
+    MemoryManage::Init_LDT_desc(FIRST_TASK);
+    Process::current = task_array[FIRST_TASK];
+    //before this the task0's ldt must be loaded to the ldtr....
+    move_to_user_mode();
+    //switch_to(FIRST_TASK);
 }
 
 Process * ProcessManage::getCurrent(){

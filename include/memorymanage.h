@@ -61,11 +61,24 @@ class MemoryManage
                              address, 0x89);
             return 0;
         }
+        static void Init_LDT_desc(int index){
+            ldt_table * c_ldt = &(currentMM -> ldt_array[index] );
+            (*c_ldt)[1].a = 0x9f;
+            (*c_ldt)[1].b = 0xc0fa00;
+            (*c_ldt)[2].a = 0x9f;
+            (*c_ldt)[2].b = 0xc0f200;
+            //unsigned long start_code = ldt_copy_mem(index, current_index);
+
+            set_tssldt_desc(
+                             & (currentMM -> gdt[ (index << 1) + FIRST_LDT_ENTRY ] ),
+                             (unsigned long)(& (currentMM -> ldt_array[index]) ), 0x82);
+            return ;
+        }
         static unsigned long set_LDT_desc(int index, int current_index){
             unsigned long start_code = ldt_copy_mem(index, current_index);
             set_tssldt_desc(
                              & (currentMM -> gdt[ (index << 1) + FIRST_LDT_ENTRY ] ),
-                             (unsigned long)(& (currentMM -> ldt_array[current_index]) ), 0x82);
+                             (unsigned long)(& (currentMM -> ldt_array[index]) ), 0x82);
             return start_code;
         }
         static unsigned long get_empty_page();   // find a free physical page and alloc a linner address for it then return the linner address
