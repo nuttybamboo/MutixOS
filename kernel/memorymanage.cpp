@@ -177,8 +177,8 @@ bool MemoryManage::copy_page_tables(unsigned long source_base, unsigned long dec
 void MemoryManage::on_process_die(int index){
     ldt_table * p_ldt = &(currentMM -> ldt_array[index]);
 
-    free_page_tables(get_base((*p_ldt)[1]),get_limit({0x0f, 0}));
-	free_page_tables(get_base((*p_ldt)[2]),get_limit((desc_struct){0x17, 0}));
+    free_page_tables(get_base((*p_ldt)[1]),get_limit( (*p_ldt)[1] ));
+	free_page_tables(get_base((*p_ldt)[2]),get_limit( (*p_ldt)[2] ));
 }
 
 

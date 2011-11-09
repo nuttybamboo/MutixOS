@@ -6,7 +6,7 @@
 
 #define PROCESS_MEMORY_PAGES_NUM    255
 
-#define KERNEL_BASE 0x100000
+#define PROCESS_MEMORY_BASE 0x100000
 
 #define ERROR_PROCESS_FULL  1
 #define ERROR_PM_MEMORY_FULL    2
@@ -21,6 +21,7 @@ class SleepQue{
 
 class ProcessManage
 {
+    friend class KernelRescue;
     private:
         ProcessManage();
         static void switch_to(int next);
@@ -38,8 +39,8 @@ class ProcessManage
         static void wait_pid();
     private:
         Process * task_array[MAX_TASK_NUM];
-        static ProcessManage * currentPM;
         char process_memeory_map[PROCESS_MEMORY_PAGES_NUM];
+        static ProcessManage * currentPM;
 };
 
 #endif // PROCESSMANAGE_H

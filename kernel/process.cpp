@@ -10,7 +10,7 @@ class Process: the abstract of the process in operation system
 int Process::p_counter = 0;
 Process * Process::current = 0;
 
-Process::Process()
+void Process::ProcessInit()
 {
     pid = p_counter++;
     father = -1;
@@ -57,7 +57,7 @@ Process::Process()
     tss.trace_bitmap = 0x80000000;
 }
 
-void Process::ProcessC(const Process& other, const int& task_index)
+void Process::ProcessCopy(const Process& other, const int& task_index)
 {
  //   *this = other;//bit wise?
 

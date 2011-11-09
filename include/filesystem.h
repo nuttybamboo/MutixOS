@@ -4,6 +4,7 @@
 
 class FileSystem
 {
+    friend class KernelRescue;
     private:
         FileSystem();
     public:
@@ -17,7 +18,8 @@ class FileSystem
         static void dircreate();
         static void dirdelete();
     private:
-        static char * file_buffer;// shouled be alloced 2M memory at the very begining...
+        char * file_buffer;// shouled be alloced 2M memory at the very begining...
+        static FileSystem * currentFS;
 
 };
 

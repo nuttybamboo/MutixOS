@@ -80,9 +80,9 @@ class Process
         char stack[STACK_SIZE];
 
     private:
-        Process();
+        void ProcessInit();
 
-        void ProcessC(const Process& other, const int& task_index);
+        void ProcessCopy(const Process& other, const int& task_index);
         //Process(const Process& other); //bitwise copy maybe a good idea...
         //Process& operator=(const Process& other);
         //~Process();

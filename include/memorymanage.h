@@ -39,10 +39,10 @@ class MemoryManage
 {
     friend class KernelRescue;
     private:
+        unsigned long page_dir[PAGE_DIR_SIZE];
         desc_table gdt;   //the gdt table
         ldt_table ldt_array[MAX_TASK_NUM];//[LDT_TABLE_SIZE];
         char memory_map[PAGING_PAGES];
-        unsigned long page_dir[PAGE_DIR_SIZE];
         static MemoryManage * currentMM;
     public:
         static void on_page_fault();

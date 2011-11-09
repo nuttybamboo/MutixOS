@@ -5,6 +5,13 @@ ProcessManage * ProcessManage::currentPM = 0;
 ProcessManage::ProcessManage()
 {
     //ctor
+    currentPM = this;
+    task_array = {0, };
+    process_memeory_map = {0, };
+    process_memeory_map[FIRST_TASK] ++;
+    Process * p = task_array[FIRST_TASK] = (Process*)(PROCESS_MEMORY_BASE + FIRST_TASK * PAGE_SIZE);
+    p -> ProcessInit();
+    switch_to(FIRST_TASK);
 }
 
 Process * ProcessManage::getCurrent(){
@@ -38,9 +45,9 @@ int ProcessManage::fork_process(){
     if(memory_index == -1){
         return -ERROR_PM_MEMORY_FULL;
     }
-    MemoryManage::put_page(KERNEL_BASE + memory_index * PAGE_SIZE);// alloc phsical memory for the PM part..
-    Process * p = currentPM -> task_array[index] = (Process*)(KERNEL_BASE + memory_index * PAGE_SIZE);
-    p -> ProcessC(*Process::current, index);//??
+    MemoryManage::put_page(PROCESS_MEMORY_BASE + memory_index * PAGE_SIZE);// alloc phsical memory for the PM part..
+    Process * p = currentPM -> task_array[index] = (Process*)(PROCESS_MEMORY_BASE + memory_index * PAGE_SIZE);
+    p -> ProcessCopy(*Process::current, index);//??
     MemoryManage::set_TSS_desc(index, p -> getTSS());
 	p -> setStart_code(
         MemoryManage::set_LDT_desc(index, find_process(Process::current -> getPid()))
