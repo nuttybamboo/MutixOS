@@ -1,5 +1,33 @@
 #include "../include/memorymanage.h"
 
+#define set_GDT(address)    {\
+    struct _gdt_desc{unsigned long a; unsigned long b;} gdt_desc;\
+    gdt_desc.a = ((unsigned long)(256 * 7 - 1)) << 16;\
+    gdt_desc.b = (unsigned long)address;\
+    char * gdt_desc_pointor = (char*)(unsigned long)(&gdt_desc);\
+    gdt_desc_pointor +=2;\
+       __asm__(\
+            "lgdt %0\n\t"\
+            ::"m" (*gdt_desc_pointor):\
+            );\
+}
+
+#define set_page_dir(address)    {\
+       __asm__(\
+            "movl %%eax %%cr3\n\t"\
+            ::"a" (address):\
+            );\
+}
+
+#define start_paging()  {\
+    __asm__(\
+            "movl %%cr0 %%eax\n\t"\
+            "orl $0x80000000 %%eax\n\t"\
+            "movl %%eax %%cr0\n\t"\
+            :::\
+            );\
+}
+
 MemoryManage * MemoryManage::currentMM = 0;
 
 void MemoryManage::MemoryManageInit()
@@ -52,8 +80,9 @@ void MemoryManage::MemoryManageInit()
     page_dir = {0, };
     memory_map = {0, };
 
-    //set_page_dir(&page_dir);
-    //set_GDT(&gdt);
+    set_page_dir(&page_dir);
+    start_paging();
+    set_GDT(&gdt);
 }
 
 /*

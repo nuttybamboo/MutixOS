@@ -113,6 +113,8 @@ class MemoryManage
         static inline void set_limit(desc_struct * ldt_address, unsigned long limit);
         static inline unsigned long get_base(desc_struct ldt_address);
         static inline unsigned long get_limit(desc_struct ldt_address);
+
+        //static void set_GDT(unsigned long address)
 };
 
 #endif // MEMORYMANAGE_H

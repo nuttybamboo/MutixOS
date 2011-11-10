@@ -1,7 +1,8 @@
 #include "../include/config.h"
 
 #define move_to_user_mode() \
-__asm__ ("movl %%esp,%%eax\n\t" \
+__asm__ (\
+    "movl %%esp,%%eax\n\t" \
 	"pushl $0x17\n\t" \
 	"pushl %%eax\n\t" \
 	"pushfl\n\t" \
@@ -14,6 +15,9 @@ __asm__ ("movl %%esp,%%eax\n\t" \
 	"movw %%ax,%%fs\n\t" \
 	"movw %%ax,%%gs" \
 	:::"ax")
+
+#define ltr(n) __asm__("ltr %%ax"::"a" ( *&n ))
+#define lldt(n) __asm__("lldt %%ax"::"a" ( *&n))
 
 ProcessManage * ProcessManage::currentPM = 0;
 
@@ -30,6 +34,10 @@ void ProcessManage::ProcessManageInit()
     MemoryManage::set_TSS_desc(FIRST_TASK, p -> getTSS());
     MemoryManage::Init_LDT_desc(FIRST_TASK);
     Process::current = task_array[FIRST_TASK];
+
+    //__asm__("pushfl ; andl $0xffffbfff,(%esp) ; popfl");
+    ltr(MemoryManage::get_TSS_choice(FIRST_TASK));
+    lldt(MemoryManage::get_LDT_choice(FIRST_TASK));
     //before this the task0's ldt must be loaded to the ldtr....
     move_to_user_mode();
     //switch_to(FIRST_TASK);
@@ -120,7 +128,7 @@ inline void ProcessManage::switch_to(int next) {
         "movw %%dx,%1\n\t"
         "ljmp *%0\n\t"
         ::"m" (*&__tmp.a),"m" (*&__tmp.b),
-        "d" (MemoryManage::get_TSS_choice(next)));
+        "d" (*&MemoryManage::get_TSS_choice(next)));
     return ;
 }
 
