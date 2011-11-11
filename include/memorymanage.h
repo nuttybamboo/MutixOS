@@ -27,25 +27,23 @@
 #define TSS_SEG_DESC    0x89
 #define LDT_SEG_DESC    0x82
 
-
-
-typedef struct desc_struct {
+struct desc_struct{
 	unsigned long a,b;
-}desc_table[GDT_TABLE_MAX_SIZE];
+};
 
-typedef struct desc_struct ldt_table[LDT_TABLE_SIZE];
+typedef desc_struct gdt_desc_table[GDT_TABLE_MAX_SIZE];
+typedef desc_struct ldt_table[LDT_TABLE_SIZE];
 
 class MemoryManage
 {
     friend class KernelRescue;
     private:
         unsigned long page_dir[PAGE_DIR_SIZE];
-        desc_table gdt;   //the gdt table
+        gdt_desc_table gdt;   //the gdt table
         ldt_table ldt_array[MAX_TASK_NUM];//[LDT_TABLE_SIZE];
         char memory_map[PAGING_PAGES];
         static MemoryManage * currentMM;
     public:
-        static void on_page_fault();
         static unsigned long page_dir_address(){
             return (unsigned long)(currentMM -> page_dir);
         }
@@ -89,6 +87,7 @@ class MemoryManage
         void MemoryManageInit();
         static long find_wapped_out();
 
+        static void on_page_fault();
         static void copy_on_write(unsigned long error_code,unsigned long address);
         static void un_wp_page(unsigned long * table_entry);
 
@@ -114,7 +113,7 @@ class MemoryManage
         static inline unsigned long get_base(desc_struct ldt_address);
         static inline unsigned long get_limit(desc_struct ldt_address);
 
-        //static void set_GDT(unsigned long address)
+        static inline void set_GDT(unsigned long address);
 };
 
 #endif // MEMORYMANAGE_H

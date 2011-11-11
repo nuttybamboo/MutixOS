@@ -2,10 +2,134 @@
 
 SystemCall * SystemCall::currentSCI = 0;
 
+void inline SystemCall::set_gate(desc_struct * gate_addr, unsigned type, unsigned dpl, unsigned long addr){
+    gate_addr -> a = 0x00080000 | (0x0000FFFF & addr);
+    gate_addr -> b = ( (0x8000 + (dpl << 13) + (type << 8)) & 0x0000FFFF) | (addr & 0xFFFF0000);
+    return;
+}
+
+void inline SystemCall::set_intr_gate(int index, op_function addr){
+	set_gate(&(currentSCI -> idt[index]), 14, 0, (unsigned long)addr);
+}
+
+void inline SystemCall::set_trap_gate(int index, op_function addr){
+	set_gate(&(currentSCI -> idt[index]), 15, 0, (unsigned long)addr);
+}
+
+void inline SystemCall::set_system_gate(int index, op_function addr){
+	set_gate(&(currentSCI -> idt[index]), 15, 3, (unsigned long)addr);
+}
+
+void inline SystemCall::set_IDT(unsigned long address){
+    struct _idt_desc{
+        unsigned long a;
+        unsigned long b;
+    } idt_desc;
+    idt_desc.a = ((unsigned long)(128 * 7 - 1)) << 16;
+    idt_desc.b = (unsigned long)address;
+    char * idt_desc_pointor = (char*)(unsigned long)(&idt_desc);
+    idt_desc_pointor +=2;
+    __asm__(
+        "lidt %0\n\t"
+        ::"m" (*idt_desc_pointor):
+        );
+}
+
 void SystemCall::SystemCallInit()
 {
     //ctor
     currentSCI = this;
+    idt = {
+        {
+            0x00080000, 0x00008E00
+        },
+        {
+            0x00080000, 0x00008E00
+        },
+        {
+            0x00080000, 0x00008E00
+        },
+    };
     system_call_table = {0, };
+    set_IDT((unsigned long)&idt);
+//*
+    set_trap_gate(0, &on_divide_error);
+	set_trap_gate(1, &on_debug);
+	set_trap_gate(2, &on_nmi);
+	set_system_gate(3, &on_int3);
+	set_system_gate(4, &on_overflow);
+	set_system_gate(5, &on_bounds);
+	set_trap_gate(6, &on_invalid_op);
+	set_trap_gate(7, &on_device_not_available);
+	set_trap_gate(8, &on_double_fault);
+	set_trap_gate(9, &on_coprocessor_segment_overrun);
+	set_trap_gate(10, &on_invalid_TSS);
+	set_trap_gate(11, &on_segment_not_present);
+	set_trap_gate(12, &on_stack_segment);
+	set_trap_gate(13, &on_general_protection);
+	set_trap_gate(14, &on_reserved); //page_fault
+	set_trap_gate(15, &on_reserved);
+	set_trap_gate(16, &on_coprocessor_error);
+	for (int i = 17; i < 48; i++){
+		set_trap_gate(i, &on_reserved);
+	}
+
+	set_trap_gate(45, &on_irq13);
+
+	set_trap_gate(39, &on_parallel_interrupt);
+
+	set_intr_gate(0x20, &on_timer_interrupt);
+//*/
+	set_system_gate(0x74, &on_system_call);
+
     //traps and interaption setting...
 }
+
+void SystemCall::SetPageFaultTraps(op_function fuction){
+    set_trap_gate(14, fuction);
+}
+
+
+void SystemCall::on_system_call(){
+}
+
+//well, I don't know what to do with thess op yet....
+void SystemCall::on_divide_error(){
+}
+void SystemCall::on_debug(){
+}
+void SystemCall::on_nmi(){
+}
+void SystemCall::on_int3(){
+}
+void SystemCall::on_overflow(){
+}
+void SystemCall::on_bounds(){
+}
+void SystemCall::on_invalid_op(){
+}
+void SystemCall::on_device_not_available(){
+}
+void SystemCall::on_double_fault(){
+}
+void SystemCall::on_coprocessor_segment_overrun(){
+}
+void SystemCall::on_invalid_TSS(){
+}
+void SystemCall::on_segment_not_present(){
+}
+void SystemCall::on_stack_segment(){
+}
+void SystemCall::on_general_protection(){
+}
+void SystemCall::on_reserved(){
+}
+void SystemCall::on_coprocessor_error(){
+}
+void SystemCall::on_irq13(){
+}
+void SystemCall::on_parallel_interrupt(){
+}
+void SystemCall::on_timer_interrupt(){
+}
+

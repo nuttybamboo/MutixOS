@@ -16,8 +16,8 @@ __asm__ (\
 	"movw %%ax,%%gs" \
 	:::"ax")
 
-#define ltr(n) __asm__("ltr %%ax"::"a" ( *&n ))
-#define lldt(n) __asm__("lldt %%ax"::"a" ( *&n))
+#define ltr(n) __asm__("ltr %%ax"::"a" (n))
+#define lldt(n) __asm__("lldt %%ax"::"a" (n))
 
 ProcessManage * ProcessManage::currentPM = 0;
 
@@ -39,7 +39,7 @@ void ProcessManage::ProcessManageInit()
     ltr(MemoryManage::get_TSS_choice(FIRST_TASK));
     lldt(MemoryManage::get_LDT_choice(FIRST_TASK));
     //before this the task0's ldt must be loaded to the ldtr....
-    move_to_user_mode();
+    //move_to_user_mode();
     //switch_to(FIRST_TASK);
 }
 
@@ -128,7 +128,7 @@ inline void ProcessManage::switch_to(int next) {
         "movw %%dx,%1\n\t"
         "ljmp *%0\n\t"
         ::"m" (*&__tmp.a),"m" (*&__tmp.b),
-        "d" (*&MemoryManage::get_TSS_choice(next)));
+        "d" (MemoryManage::get_TSS_choice(next)));
     return ;
 }
 

@@ -1,19 +1,19 @@
 #include "../include/memorymanage.h"
 
-#define set_GDT(address)    {\
-    struct _gdt_desc{unsigned long a; unsigned long b;} gdt_desc;\
-    gdt_desc.a = ((unsigned long)(256 * 7 - 1)) << 16;\
-    gdt_desc.b = (unsigned long)address;\
-    char * gdt_desc_pointor = (char*)(unsigned long)(&gdt_desc);\
-    gdt_desc_pointor +=2;\
-       __asm__(\
-            "lgdt %0\n\t"\
-            ::"m" (*gdt_desc_pointor):\
-            );\
+void inline MemoryManage::set_GDT(unsigned long address){
+    struct _gdt_desc{unsigned long a; unsigned long b;} gdt_desc;
+    gdt_desc.a = ((unsigned long)(256 * 7 - 1)) << 16;
+    gdt_desc.b = (unsigned long)address;
+    char * gdt_desc_pointor = (char*)(unsigned long)(&gdt_desc);
+    gdt_desc_pointor +=2;
+   __asm__(
+        "lgdt %0\n\t"
+        ::"m" (*gdt_desc_pointor):
+        );
 }
 
 #define set_page_dir(address)    {\
-       __asm__(\
+        __asm__(\
             "movl %%eax %%cr3\n\t"\
             ::"a" (address):\
             );\
@@ -80,9 +80,26 @@ void MemoryManage::MemoryManageInit()
     page_dir = {0, };
     memory_map = {0, };
 
-    set_page_dir(&page_dir);
-    start_paging();
-    set_GDT(&gdt);
+    //set_page_dir(&page_dir);
+/*
+    __asm__(
+        "movl %%eax %%cr2\n\t"
+        ::"a" (&page_dir)
+        );
+//*/
+    //start_paging();
+
+/*
+    __asm__(
+        "movl %%cr0 %%eax\n\t"
+        "orl $0x80000000 %%eax\n\t"
+        "movl %%eax %%cr0\n\t"
+        ::
+        );
+//*/
+    set_GDT((unsigned long)&gdt);
+
+    SystemCall::SetPageFaultTraps(&on_page_fault);
 }
 
 /*
@@ -412,6 +429,9 @@ void do_no_page(unsigned long error_code,unsigned long address)
 	//*/
 }
 
+void on_page_fault(){
+
+}
 
 
 
