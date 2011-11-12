@@ -17,4 +17,10 @@
 #define nop() __asm__ ("nop"::)
 #define iret() __asm__ ("iret"::)
 
+
+#define PROCESS_FORK    0
+#define PROCESS_SLEEP   1
+#define PROCESS_WAKE_UP    2
+#define PROCESS_DIE   3
+
 #endif // CONFIG_H

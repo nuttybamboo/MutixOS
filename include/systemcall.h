@@ -1,12 +1,13 @@
 #ifndef SYSTEMCALL_H
 #define SYSTEMCALL_H
 
-#define SYS_CALL_MAX_NUM    256
+#define SYSTEMCALL_MAX_NUM    256
 #define IDT_TABLE_MAX_SIZE  256
 
 
 
 typedef void (*op_function) (void);
+typedef int (*syscall_op_function) (void);
 typedef struct desc_struct idt_desc_table[IDT_TABLE_MAX_SIZE];
 
 class SystemCall
@@ -14,7 +15,7 @@ class SystemCall
     friend class KernelRescue;
     public:
         void SystemCallInit();
-        static void SetSystemCall(int system_call_number, op_function fuction);
+        static void SetSystemCall(int system_call_number, syscall_op_function fuction);
         static void SetPageFaultTraps(op_function fuction);
     private:
         static void on_divide_error();
@@ -48,7 +49,7 @@ class SystemCall
         static void inline set_system_gate(int index, op_function addr);
     private:
         idt_desc_table  idt;
-        op_function system_call_table[SYS_CALL_MAX_NUM];
+        syscall_op_function system_call_table[SYSTEMCALL_MAX_NUM];
         static SystemCall * currentSCI;
 };
 

@@ -41,6 +41,10 @@ void ProcessManage::ProcessManageInit()
     //before this the task0's ldt must be loaded to the ldtr....
     //move_to_user_mode();
     //switch_to(FIRST_TASK);
+
+    SystemCall::SetSystemCall(PROCESS_FORK, &fork_process);
+    SystemCall::SetSystemCall(PROCESS_SLEEP, (int(*)())&sleep);
+    SystemCall::SetSystemCall(PROCESS_WAKE_UP, (int(*)())&wake_up);
 }
 
 Process * ProcessManage::getCurrent(){

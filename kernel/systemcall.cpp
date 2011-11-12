@@ -85,12 +85,51 @@ void SystemCall::SystemCallInit()
     //traps and interaption setting...
 }
 
+void SystemCall::SetSystemCall(int system_call_number, syscall_op_function fuction){
+    currentSCI -> system_call_table[system_call_number] = fuction;
+    return;
+}
+
 void SystemCall::SetPageFaultTraps(op_function fuction){
     set_trap_gate(14, fuction);
 }
 
 
 void SystemCall::on_system_call(){
+
+    int eax;
+    __asm__("nop;":"=a" (eax):);
+
+    if(eax >= SYSTEMCALL_MAX_NUM || !currentSCI -> system_call_table[eax]){
+        //panic("bad sys call");
+        return ;
+    }
+
+    __asm__(
+	"push %%ds\n\t"
+	"push %%es\n\t"
+	"push %%fs\n\t"
+	"pushl %%edx\n\t"
+	"pushl %%ecx\n\t"
+	"pushl %%ebx\n\t"
+	"movl $0x10,%%edx\n\t"
+	"mov %%dx,%%ds\n\t"
+	"mov %%dx,%%es\n\t"
+	"movl $0x17,%%edx\n\t"
+	"mov %%dx,%%fs\n\t"
+	::);
+	eax = currentSCI -> system_call_table[eax]();
+	//"call sys_call_table(,%eax,4)\n\t"
+	__asm__(
+    "movl %0 %%eax\n\t"
+	"popl %%ebx\n\t"
+	"popl %%ecx\n\t"
+	"popl %%edx\n\t"
+	"pop %%fs\n\t"
+	"pop %%es\n\t"
+	"pop %%ds\n\t"
+	::"m" (*&eax));
+	return;
 }
 
 //well, I don't know what to do with thess op yet....
