@@ -1,26 +1,31 @@
-#include "../include/config.h"
+#include "../include/kernelrescue.h"
 
 KernelRescue::KernelRescue()
 {
     //ctor
     //setting panic trap gate....
+    printf("SCI Initing!\n");
     InitSCI();
+    printf("MM Initing!\n");
     InitMM();
+    printf("PM Initing!\n");
     InitPM();
+    printf("PM Inited!\n");
 }
 
 void KernelRescue::InitSCI(){
-    SystemCall * system_call = (SystemCall *)SCI_BASE;
+    SystemCall * system_call = new SystemCall; //(SystemCall *)g_cpu.line2physical_addr(SCI_BASE);
     system_call -> SystemCallInit();
 }
 
 void KernelRescue::InitMM(){
-    MemoryManage * memory_manage = (MemoryManage *)MM_BASE;
+    MemoryManage * memory_manage = new MemoryManage(); //(MemoryManage *)g_cpu.line2physical_addr(MM_BASE);
     memory_manage -> MemoryManageInit();
 }
 
 void KernelRescue::InitPM(){
-    ProcessManage * process_manage = (ProcessManage *)PM_BASE;
+    ProcessManage * process_manage = new ProcessManage();//(ProcessManage *)g_cpu.line2physical_addr(PM_BASE);
+    printf("PM Initing!\n");
     process_manage -> ProcessManageInit();
 }
 

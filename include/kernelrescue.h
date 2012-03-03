@@ -1,6 +1,12 @@
 #ifndef KERERRESCUE_H
 #define KERERRESCUE_H
 
+#include "../include/systemcall.h"
+#include "../include/filesystem.h"
+#include "../include/memorymanage.h"
+#include "../include/processmanage.h"
+#include "../include/interprocesscommu.h"
+
 #define KRM_BASE    0X00
 #define KRM_LIMIT   0X10000
 

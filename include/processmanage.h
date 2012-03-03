@@ -1,5 +1,9 @@
 #ifndef PROCESSMANAGE_H
 #define PROCESSMANAGE_H
+#include "../include/config.h"
+#include "../include/process.h"
+//#include "../include/memorymanage.h"
+#include "../include/systemcall.h"
 
 #define TSS_ITEM    0
 #define LDT_ITEM    1
@@ -11,6 +15,8 @@
 #define ERROR_PROCESS_FULL  1
 #define ERROR_PM_MEMORY_FULL    2
 #define ERROR_PROCESS_NOT_FOUND 3
+
+class Process;
 
 class SleepQue{
     friend class ProcessManage;

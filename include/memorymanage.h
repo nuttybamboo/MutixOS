@@ -1,4 +1,7 @@
 #include "../include/config.h"
+#include "../include/global.h"
+#include "../include/processmanage.h"
+#include "../include/systemcall.h"
 
 #ifndef MEMORYMANAGE_H
 #define MEMORYMANAGE_H
@@ -14,12 +17,12 @@
 
 #define SEG_LENGTH  0x4000000
 
-#define PAGE_SIZE   4096
-
-#define LOW_MEM 0x100000
-#define PAGING_MEMORY (15*1024*1024)
-#define PAGING_PAGES (PAGING_MEMORY>>12)
-#define MAP_NR(addr) (((addr)-LOW_MEM)>>12)
+#define LOW_MEM (g_memory.get_lowmem())
+#define PAGE_SIZE   (g_memory.get_page_size())
+#define PAGE_SIZE_BIT   (g_memory.get_page_size_bit())
+#define PAGING_MEMORY   (g_memory.get_page_size() * g_memory.get_page_num())
+#define PAGING_PAGES    (g_memory.get_page_num())
+#define MAP_NR(addr)    (((addr)-LOW_MEM)>>PAGE_SIZE_BIT)
 
 #define HIGH_MEMORY PAGING_MEMORY + LOW_MEM
 
@@ -27,9 +30,7 @@
 #define TSS_SEG_DESC    0x89
 #define LDT_SEG_DESC    0x82
 
-struct desc_struct{
-	unsigned long a,b;
-};
+
 
 typedef desc_struct gdt_desc_table[GDT_TABLE_MAX_SIZE];
 typedef desc_struct ldt_table[LDT_TABLE_SIZE];
@@ -41,23 +42,24 @@ class MemoryManage
         unsigned long page_dir[PAGE_DIR_SIZE];
         gdt_desc_table gdt;   //the gdt table
         ldt_table ldt_array[MAX_TASK_NUM];//[LDT_TABLE_SIZE];
-        char memory_map[PAGING_PAGES];
+        char* memory_map;
         static MemoryManage * currentMM;
     public:
+        MemoryManage(){};
         static unsigned long page_dir_address(){
             return (unsigned long)(currentMM -> page_dir);
         }
-        static unsigned long get_LDT_choice(int index){
+        static int get_LDT_choice(int index){
             return ((((unsigned long) index) << 4) + (FIRST_LDT_ENTRY << 3));
         }
-        static unsigned long get_TSS_choice(int index){
+        static int get_TSS_choice(int index){
             return ((((unsigned long) index) << 4) + (FIRST_TSS_ENTRY << 3));
         }
-        static long set_TSS_desc(int index, unsigned long address){
+        static void set_TSS_desc(int index, unsigned long address){
             set_tssldt_desc(
                              & (currentMM -> gdt[ (index << 1) + FIRST_TSS_ENTRY ] ),
                              address, 0x89);
-            return 0;
+            return ;
         }
         static void Init_LDT_desc(int index){
             ldt_table * c_ldt = &(currentMM -> ldt_array[index] );
@@ -101,11 +103,13 @@ class MemoryManage
         static inline void set_tssldt_desc(desc_struct * desc_address, unsigned long aim_addr, unsigned type){
             desc_address -> a &= 0x00;
             desc_address -> b &= 0x00;
-            desc_address -> a |= 0xFFFF0068;
-            desc_address -> a |= ( (aim_addr & 0xFFFF) << 16 ) | 0x0000FFFF;
-            desc_address -> b |= 0xFFFF00FF | (type << 8);
-            desc_address -> b |= 0x00FFFF00 | (aim_addr & 0xFF000000) | ( (aim_addr & 0xFF0000) >> 16 );
+            desc_address -> a |= 0x00000068;
+            desc_address -> a |= ( (aim_addr & 0xFFFF) << 16 ) & 0xFFFF0000;
+            desc_address -> b |= 0x0000FF00 & (type << 8);
+            desc_address -> b |= 0xFF0000FF & ( (aim_addr & 0xFF000000) | ( (aim_addr & 0xFF0000) >> 16 ) );
             desc_address -> b &= 0xFF00FFFF;
+
+            printf("set aim %lx desc a %lx, b %lx, in addr %ld\n",aim_addr, desc_address -> a, desc_address ->b, desc_address);
             return;
         }
         static inline void set_base(desc_struct * ldt_address, unsigned long base);

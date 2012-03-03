@@ -1,10 +1,17 @@
 #ifndef SYSTEMCALL_H
 #define SYSTEMCALL_H
 
+//#include "../include/memorymanage.h"
+//#include "../include/processmanage.h"
+
+#include "../include/global.h"
+
 #define SYSTEMCALL_MAX_NUM    256
 #define IDT_TABLE_MAX_SIZE  256
 
-
+struct desc_struct{
+	unsigned long a,b;
+};
 
 typedef void (*op_function) (void);
 typedef int (*syscall_op_function) (void);

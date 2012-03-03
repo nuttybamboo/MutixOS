@@ -16,8 +16,8 @@ class InterProcessCommu
         void sem_unlink();
     private:
     //these only called by the KRM parts to show the state of the system...its private so only the friend class KRM could access...
-        static void ShowIPCDetail();
-        static void ShowIPCBasic();
+        static void ShowIPCDetail(){};
+        static void ShowIPCBasic(){};
     private:
         static InterProcessCommu * currentIPC;
         // the other members should be nonesatic..
