@@ -1,4 +1,4 @@
-#include "io.h"
+#include "../include/io.h"
 #include <iostream>
 
 int IO::current_index = 0;
@@ -15,5 +15,5 @@ IO::~IO()
 }
 
 void on_keybord_down(int key){
-    SystemCall::input(key);
+//    SystemCall::input(key);
 };

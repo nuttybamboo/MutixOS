@@ -3,6 +3,9 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <setjmp.h>
+#include <map>
+
 
 #define BIT_OF_REGISTER 32
 
@@ -27,7 +30,7 @@ struct cpu_struct {
 	unsigned long	gs;
 	unsigned long	ldt;
 };
-
+typedef void (*op_function) (void);
 /*
 struct i387_struct {
 	long	cwd;
@@ -70,7 +73,7 @@ typedef struct _tss_struct {
 
 enum DescType {
     DESC_TYPE_LDT, DESC_TYPE_TSS, DESC_TYPE_CALL_GATE,
-    DESC_TYPE_INTER_GATE, DESC_TYPE_TRAPE_GATE, DESC_TYPE_TASK_GATE,
+    DESC_TYPE_INTER_GATE, DESC_TYPE_TRAP_GATE, DESC_TYPE_TASK_GATE,
     DESC_TYPE_CODE_SEG, DESC_TYPE_DATA_SEG, DESC_TYPE_NOT_IN_MEM, DESC_TYPE_ILLEGAL
 };
 enum CPUState {
@@ -78,6 +81,8 @@ enum CPUState {
 };
 
 typedef struct _choice{long a, b;} Desc;
+
+typedef struct _jmp_point{ jmp_buf point;} JumpPoint;
 
 class MutixCPU
 {
@@ -106,12 +111,17 @@ class MutixCPU
         };
 
         long line2physical_addr(unsigned long line_addr){
+            printf("changing line %d to physical\n", line_addr);
             unsigned long page_dir_index = (line_addr & 0xFFC00000) >> 22;
             unsigned long page_table_index = (line_addr & 0x003FF000) >> 12;
             unsigned long inner_page_offset = (line_addr & 0x00000FFF);
             unsigned long * page_dir_base = (unsigned long*)get_cr3();
+            printf("page dir base is %d, index is %d\n", page_dir_base, page_dir_index);
             unsigned long  * page_table_base = (unsigned long *)((page_dir_base[page_dir_index]) & 0xFFFFFFF8);
+            printf("page table base is %d, index is %d\n", page_table_base, page_table_index);
             unsigned long page_base = (page_table_base[page_table_index]) & 0xFFFFFFF8;
+            printf("changing line %d to physical %d, page table value is %d \n",
+                   line_addr, page_base + inner_page_offset, &page_table_base[page_table_index]);
             return page_base + inner_page_offset;
         };
 
@@ -216,7 +226,7 @@ class MutixCPU
                         return DESC_TYPE_INTER_GATE;
                     case 7:
                     case 15:
-                        return DESC_TYPE_TRAPE_GATE;
+                        return DESC_TYPE_TRAP_GATE;
                 }
             }
         };
@@ -247,37 +257,86 @@ class MutixCPU
             set_tr(tss);
         };
         void ltr(int tss_choice){
-            const Desc* gdt_base = (Desc*)get_gdt();
-            printf("gdt addr is %d, tss_choice is %d, index is %d, index addr is %d\n",
-                   get_gdt(), tss_choice, tss_choice >> 3, &gdt_base[tss_choice >> 3]);
-            const Desc* tss_desc = (const Desc*)&gdt_base[tss_choice >> 3];
+            const Desc* tss_desc = get_desc_from_choice(tss_choice);//(const Desc*)&gdt_base[tss_choice >> 3];
             const tss_struct * tss = get_tss(tss_desc);
             load_tss(tss);
+            printf("set cur_task ,tss_choice is %d, cur_task is %d\n", tss_choice, cur_task);
+            cur_task = tss_choice>>3;
         };
         void switch_to(int tss_choice){
-            printf("swithc to\n");
+            int prev_task = cur_task;
+            printf("cur_task is %d\n", cur_task);
+            printf("swithc to tss_choice = %d\n", tss_choice);
             str();
             printf("ltr\n");
             ltr(tss_choice);
+
+            int var = setjmp(jmp_env[prev_task]);
+            if(0 == var) {
+                printf("switching to %d\n", cur_task);
+                longjmp(jmp_env[cur_task], prev_task);
+                printf("hei,what are you  doing ?!\n");
+            }
+            else{
+                printf("switched from %d\n", var);
+            }
         };
+        void switch_to_first_task(int tss_choice){
+            printf("switching to %d\n", cur_task);
+            longjmp(jmp_env[cur_task], cur_task);
+        };
+        unsigned long get_offset_from_gate(const Desc* gate){
+            unsigned long offset = gate->b & 0xFFFF0000;
+            offset |= (0x0000FFFF & gate->a);
+            return offset;
+        }
         int get_choice_from_gate(const Desc* gate){
             return (gate->a & 0xffff0000) >> 16;
         };
         const Desc* get_desc_from_choice(int choice){
-
+            bool is_in_ldt = (choice & (1 << 3));
+            const Desc* desc = NULL;
+            if(!is_in_ldt){
+                const Desc* gdt_base = (Desc*)get_gdt();
+                printf("gdt addr is %d, choice is %d, index is %d, index addr is %d\n",
+                   get_gdt(), choice, choice >> 3, &gdt_base[choice >> 3]);
+                return (const Desc*)&gdt_base[choice >> 3];
+            }
+            else{
+                const Desc* ldt_base = (Desc*)get_ldt();
+                printf("ldt addr is %d, choice is %d, index is %d, index addr is %d\n",
+                   get_ldt(), choice, choice >> 3, &ldt_base[choice >> 3]);
+                return (const Desc*)&ldt_base[choice >> 3];
+            }
         };
-        void deal_with_tss(const Desc* gate){
+        void deal_with_task(const Desc* gate){
             if(DESC_TYPE_TASK_GATE != check_type(gate)){
                 return;//KernelRescue::on_panic();
             }
             int choice = get_choice_from_gate(gate);
             switch_to(choice);
         }
-        void deal_with_inter(int choice){
+        void deal_with_inter(const Desc* gate){
         }
-        void deal_with_trap(int choice){
+        void deal_with_trap(const Desc* gate){
+            if(DESC_TYPE_TRAP_GATE != check_type(gate)){
+                return;//KernelRescue::on_panic();
+            }
+            unsigned long offset = get_offset_from_gate(gate);
+            int choice = get_choice_from_gate(gate);
+            const Desc* seg_desc = get_desc_from_choice(choice);
+            if(DESC_TYPE_CODE_SEG != check_type(gate)){
+                return;//KernelRescue::on_panic();
+            }
+            unsigned long seg_base = get_base_from_desc(seg_desc);
+            unsigned long seg_limit = get_limit_frome_desc(seg_desc);
+            if(offset > seg_limit){
+                return;
+            }
+            op_function addr = (op_function)seg_base + offset;
+            addr();
         }
-        void deal_with_call(int choice){
+        void deal_with_call(const Desc* gate){
 
         }
         void deal_with_gate(const Desc* gate){
@@ -285,16 +344,16 @@ class MutixCPU
             switch(check_type(gate))
             {
                 case DESC_TYPE_TASK_GATE:
-                    deal_with_tss(gate);
+                    deal_with_task(gate);
                     break;
                 case DESC_TYPE_INTER_GATE:
-                    deal_with_inter(get_choice_from_gate(gate));
+                    deal_with_inter(gate);
                     break;
                 case DESC_TYPE_CALL_GATE:
-                    deal_with_call(get_choice_from_gate(gate));
+                    deal_with_call(gate);
                     break;
-                case DESC_TYPE_TRAPE_GATE:
-                    deal_with_trap(get_choice_from_gate(gate));
+                case DESC_TYPE_TRAP_GATE:
+                    deal_with_trap(gate);
                     break;
                 default:
                     //KernelRescue::on_panic();
@@ -302,9 +361,12 @@ class MutixCPU
             }
             return ;
         };
+    public:
+        jmp_buf jmp_env[300];
     private:
         struct cpu_struct _cpu;
         CPUState _state;
+        int cur_task;
 };
 
 #endif // MUTIXCPU_H

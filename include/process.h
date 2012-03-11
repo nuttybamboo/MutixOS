@@ -46,7 +46,7 @@ class Process
     private:
         void ProcessInit();
 
-        void ProcessCopy(const Process& other, const int& task_index);
+        void ProcessCopy(const Process* other, const int& task_index);
         //Process(const Process& other); //bitwise copy maybe a good idea...
         //Process& operator=(const Process& other);
         //~Process();

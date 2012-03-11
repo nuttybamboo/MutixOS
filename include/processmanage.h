@@ -19,6 +19,9 @@
 class Process;
 
 class SleepQue{
+    SleepQue(){
+        QueHead = NULL;
+    }
     friend class ProcessManage;
     private:
     Process * QueHead;
@@ -34,12 +37,13 @@ class ProcessManage
         static int find_empty_task();
         static int find_empty_page();
         static int find_process(int pid);
+        static void do_first_task();
     public:
         static Process * getCurrent();
         static int fork_process();
         static void schedule();
-        static void sleep(SleepQue& que);  //the  que was modedied by the function..so we should use &
-        static void wake_up(SleepQue& que);
+        static void sleep(SleepQue* que);  //the  que was modedied by the function..so we should use &
+        static void wake_up(SleepQue* que);
         static int kill_process(int pid);
         static void wait();
         static void wait_pid();

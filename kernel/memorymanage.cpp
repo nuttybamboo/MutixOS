@@ -1,15 +1,20 @@
 #include "../include/memorymanage.h"
 
+
 void inline MemoryManage::set_GDT(unsigned long address){
     struct _gdt_desc{unsigned long a; unsigned long b;} gdt_desc;
     gdt_desc.a = ((unsigned long)(256 * 7 - 1)) << 16;
     gdt_desc.b = (unsigned long)address;
     char * gdt_desc_pointor = (char*)(unsigned long)(&gdt_desc);
     gdt_desc_pointor +=2;
+
+    g_cpu.lgdt((long)gdt_desc_pointor);
+    /*
    __asm__(
         "lgdt %0\n\t"
         ::"m" (*gdt_desc_pointor):
         );
+        */
 }
 
 #define set_page_dir(address)    {\
@@ -78,9 +83,9 @@ void MemoryManage::MemoryManageInit()
     };
 
     page_dir = {0, };
-    memory_map = {0, };
+    memory_map = new char[PAGING_PAGES];
 
-    //set_page_dir(&page_dir);
+    g_cpu.set_cr3((long)&page_dir);
 /*
     __asm__(
         "movl %%eax %%cr2\n\t"
@@ -97,7 +102,7 @@ void MemoryManage::MemoryManageInit()
         ::
         );
 //*/
-    set_GDT((unsigned long)&gdt);
+    g_cpu.lgdt((unsigned long)&gdt);
 
     SystemCall::SetPageFaultTraps(&on_page_fault);
 }
@@ -111,17 +116,17 @@ unsigned long MemoryManage::get_current_ldt(){
 
 inline void MemoryManage::set_base(desc_struct * ldt_address, unsigned long base){
     ldt_address -> a &= 0x0000FFFF;     //0000YYYY
-    ldt_address -> a |= ((base & 0xFFFF) << 16) | 0xFFFF;    // 0000YYYY | XXXXFFFF = XXXXYYYY
+    ldt_address -> a |= ((base & 0xFFFF) << 16);    // 0000YYYY | XXXXFFFF = XXXXYYYY
     ldt_address -> b &= 0x00FFFF00;    //00YYYY00
-    ldt_address -> b |= (base & 0xFF000000 ) | (base & 0xFF0000) >> 16 | 0x00FFFFF00;  //00YYYY00 | 0xXXFFFFZZ = XXYYYYZZ
+    ldt_address -> b |= (base & 0xFF000000 ) | (base & 0xFF0000) >> 16;  //00YYYY00 | 0xXXFFFFZZ = XXYYYYZZ
     return ;
 }
 
 inline void MemoryManage::set_limit(desc_struct * ldt_address, unsigned long limit){
     ldt_address -> a &= 0xFFFF0000;
-    ldt_address -> a |= (limit & 0xFFFF) | 0xFFFF0000;
+    ldt_address -> a |= (limit & 0xFFFF);
     ldt_address -> b &= 0xFFF0FFFF;
-    ldt_address -> b |= (limit & 0x000F0000) | 0xFFF0FFFF;
+    ldt_address -> b |= (limit & 0x000F0000);
 
     return ;
 }
@@ -277,6 +282,7 @@ unsigned long MemoryManage::get_free_page(){
     for(int i = 0; i < PAGING_PAGES; ++i){
         if(currentMM -> memory_map[i] == 0){
             currentMM -> memory_map[i] ++;
+             printf("free page is %d\n", (i << 12) + LOW_MEM);
              return (i << 12) + LOW_MEM;
         }
     }
@@ -324,20 +330,26 @@ bool MemoryManage::write_page_table(unsigned long address, unsigned long page){
 		//printk("memory_map disagrees with %p at %p\n",page,address);
 
     //get the high 10 bit, its the offset of the liner address's page_table in the page_dir
+    printf("put page , page dir base is %d, index is %d\n", currentMM -> page_dir, address >> 22);
 	table_item_offset = address >> 22;
 	if (( currentMM -> page_dir[table_item_offset] ) & 1)
-		page_table = (unsigned long *) (0xfffff000 & (currentMM -> page_dir[table_item_offset]) );
+		page_table = (unsigned long *) (0xfffffff8 & (currentMM -> page_dir[table_item_offset]) );
 	else {
 	    //when the page_table is not exist...wo should create it...
 		if (!(tmp=get_free_page()))
 			return false;
 		currentMM -> page_dir[table_item_offset] = tmp|7;
+		printf("we create a page table ,and put it in dir its address is %d, dir value is %d, addr is %d\n",
+         tmp, currentMM -> page_dir[table_item_offset], &(currentMM -> page_dir[table_item_offset]) );
 		page_table = (unsigned long *) tmp;
 	}
 	// the 10 bit in the middle is the offset of the table_item
 	//associated with the address in the page_table
 	// >> 12 then left the high 20 bit, &0x3ff then left the middle 10 bits...the high 10 is set 0
+    printf("put page , page table base is %d, index is %d\n", page_table, (address >> 12) &0x3ff);
 	page_table[(address>>12) & 0x3ff] = page | 7;
+	printf("we a page with linner addr %d in the physical addr %d\n",
+        address, page);
 	//well the page_table is somthing to save which physical page is associated with one liner address...
 	//so the value in the item of the page_table witch is correspond to the linear address
 	//obviously is the physical page's id, the physical address this time..
@@ -395,13 +407,14 @@ void do_no_page(unsigned long error_code,unsigned long address)
 	unsigned long tmp;
 	//unsigned long page;
 	//int block,i;
-
+//*
 	address &= 0xfffff000;
 	tmp = address - ProcessManage::getCurrent() -> getStart_code();
 	if (tmp >= ProcessManage::getCurrent() -> getEnd_data()) {
 		MemoryManage::put_page(address);
 		return;
 	}
+//*/
 /*
 	if (share_page(tmp)){
 		return;
@@ -429,7 +442,7 @@ void do_no_page(unsigned long error_code,unsigned long address)
 	//*/
 }
 
-void on_page_fault(){
+void MemoryManage::on_page_fault(){
 
 }
 

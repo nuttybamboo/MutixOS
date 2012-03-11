@@ -1,4 +1,4 @@
-#include "../include/config.h"
+#include "../include/interprocesscommu.h"
 
 InterProcessCommu * InterProcessCommu::currentIPC = 0;
 

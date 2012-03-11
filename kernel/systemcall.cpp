@@ -1,4 +1,4 @@
-#include "../include/config.h"
+#include "../include/systemcall.h"
 
 SystemCall * SystemCall::currentSCI = 0;
 
@@ -29,10 +29,15 @@ void inline SystemCall::set_IDT(unsigned long address){
     idt_desc.b = (unsigned long)address;
     char * idt_desc_pointor = (char*)(unsigned long)(&idt_desc);
     idt_desc_pointor +=2;
+
+    g_cpu.lidt((unsigned long) idt_desc_pointor);
+
+    /*
     __asm__(
         "lidt %0\n\t"
         ::"m" (*idt_desc_pointor):
         );
+    */
 }
 
 void SystemCall::SystemCallInit()
@@ -97,14 +102,15 @@ void SystemCall::SetPageFaultTraps(op_function fuction){
 
 void SystemCall::on_system_call(){
 
-    int eax;
-    __asm__("nop;":"=a" (eax):);
+    int eax = g_cpu.get_eax();
+    //__asm__("nop;":"=a" (eax):);
 
     if(eax >= SYSTEMCALL_MAX_NUM || !currentSCI -> system_call_table[eax]){
         //panic("bad sys call");
         return ;
     }
 
+  /*
     __asm__(
 	"push %%ds\n\t"
 	"push %%es\n\t"
@@ -118,8 +124,31 @@ void SystemCall::on_system_call(){
 	"movl $0x17,%%edx\n\t"
 	"mov %%dx,%%fs\n\t"
 	::);
+	*/
+	g_cpu.push(g_cpu.get_ds());
+	g_cpu.push(g_cpu.get_es());
+	g_cpu.push(g_cpu.get_fs());
+	g_cpu.push(g_cpu.get_edx());
+	g_cpu.push(g_cpu.get_ecx());
+	g_cpu.push(g_cpu.get_ebx());
+	g_cpu.set_edx( 0x10 );
+	g_cpu.set_ds(g_cpu.get_edx());
+	g_cpu.set_es(g_cpu.get_edx());
+	g_cpu.set_edx( 0x17 );
+	g_cpu.set_fs(g_cpu.get_edx());
+
 	eax = currentSCI -> system_call_table[eax]();
+
+    g_cpu.set_eax(eax);
+	g_cpu.set_ebx(g_cpu.pop());
+	g_cpu.set_ecx(g_cpu.pop());
+	g_cpu.set_edx(g_cpu.pop());
+	g_cpu.set_fs(g_cpu.pop());
+	g_cpu.set_es(g_cpu.pop());
+	g_cpu.set_ds(g_cpu.pop());
+
 	//"call sys_call_table(,%eax,4)\n\t"
+/*
 	__asm__(
     "movl %0 %%eax\n\t"
 	"popl %%ebx\n\t"
@@ -129,6 +158,7 @@ void SystemCall::on_system_call(){
 	"pop %%es\n\t"
 	"pop %%ds\n\t"
 	::"m" (*&eax));
+	//*/
 	return;
 }
 

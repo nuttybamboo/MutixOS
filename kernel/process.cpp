@@ -4,8 +4,10 @@ Function:The implamention of class Process.
 class Process: the abstract of the process in operation system
 **/
 
-#include "../include/config.h"
+#include "../include/process.h"
 //init constructor...
+
+class MemoryManage;
 
 int Process::p_counter = 0;
 Process * Process::current = 0;
@@ -57,24 +59,27 @@ void Process::ProcessInit()
     tss.trace_bitmap = 0x80000000;
 }
 
-void Process::ProcessCopy(const Process& other, const int& task_index)
+
+void Process::ProcessCopy(const Process* other, const int& task_index)
 {
  //   *this = other;//bit wise?
-
+printf("why? other is %d\n", other);
     pid = p_counter++;
-    father = other.pid;
+    printf("why?\n");
+    father = other->pid;
     state = P_STATE_WAITE;
+    printf("why?\n");
 //*
-    priority = other.priority;
-    exit_code = other.exit_code;
-    start_code = other.start_code;
-    end_code = other.end_code;
-    end_data = other.end_data;
-    brk = other.brk;
-    start_stack = other.start_stack;
+    priority = father == 0 ? 20:other->priority;
+    exit_code = other->exit_code;
+    start_code = other->start_code;
+    end_code = other->end_code;
+    end_data = other->end_data;
+    brk = other->brk;
+    start_stack = other->start_stack;
 //*/
-    tss = other.tss;//bit wise copy?
-
+    tss = other->tss;//bit wise copy?
+printf("why?\n");
     tss.back_link = 0;	/* 16 high bits zero */
 	tss.esp1 = (long)(&stack + STACK_SIZE);
 	tss.ss1 = 0x10;		/* 16 high bits zero */

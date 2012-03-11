@@ -13,7 +13,7 @@ struct desc_struct{
 	unsigned long a,b;
 };
 
-typedef void (*op_function) (void);
+//typedef void (*op_function) (void);
 typedef int (*syscall_op_function) (void);
 typedef struct desc_struct idt_desc_table[IDT_TABLE_MAX_SIZE];
 
