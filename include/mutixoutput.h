@@ -4,11 +4,11 @@
 
 class MutixOutput
 {
-    public:
-        MutixOutput();
-        virtual ~MutixOutput();
-    protected:
-    private:
+public:
+    MutixOutput();
+    virtual ~MutixOutput();
+protected:
+private:
 };
 
 #endif // MUTIXOUTPUT_H

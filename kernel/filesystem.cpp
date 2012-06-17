@@ -9,6 +9,47 @@ void FileSystem::FileSystemInit()
     file_buffer = 0;
 }
 
-void FileSystem::on_process_die(int index){
+void FileSystem::on_process_die(int index)
+{
+
+}
+
+void FileSystem::fcreate()
+{
+
+}
+
+void FileSystem::fdelete()
+{
+
+}
+
+void FileSystem::fread()
+{
+
+}
+
+void FileSystem::fwrite()
+{
+
+}
+
+void FileSystem::fopen()
+{
+
+}
+
+void FileSystem::fseek()
+{
+
+}
+
+void FileSystem::dircreate()
+{
+
+}
+
+void FileSystem::dirdelete()
+{
 
 }

@@ -4,10 +4,10 @@
 
 class Timer
 {
-    public:
-        Timer();
-    protected:
-    private:
+public:
+    Timer();
+protected:
+private:
 };
 
 #endif // TIMER_H

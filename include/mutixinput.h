@@ -4,11 +4,11 @@
 
 class MutixInput
 {
-    public:
-        MutixInput();
-        virtual ~MutixInput();
-    protected:
-    private:
+public:
+    MutixInput();
+    virtual ~MutixInput();
+protected:
+private:
 };
 
 #endif // MUTIXINPUT_H

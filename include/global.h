@@ -3,19 +3,19 @@
 
 #include <iostream>
 #include <stdio.h>
-
+#include "mutixmemory.h"
 #include "mutixcpu.h"
 #include "mutixdisk.h"
-#include "mutixmemory.h"
+
 #include "mutixoutput.h"
 #include "mutixinput.h"
 
+extern MutixMemory* g_memory;
+extern MutixCPU* g_cpu;
+extern MutixDisk* g_disk;
+extern MutixInput* g_input;
 
-extern MutixCPU g_cpu;
-extern MutixDisk g_disk;
-extern MutixInput g_input;
-extern MutixMemory g_memory;
-extern MutixOutput g_output;
+extern MutixOutput* g_output;
 
 
 #endif   //GLOBAL_H

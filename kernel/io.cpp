@@ -14,6 +14,7 @@ IO::~IO()
     //dtor
 }
 
-void on_keybord_down(int key){
+void on_keybord_down(int key)
+{
 //    SystemCall::input(key);
 };
